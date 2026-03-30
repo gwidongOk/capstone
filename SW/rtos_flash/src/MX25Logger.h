@@ -3,40 +3,56 @@
 
 #include <Arduino.h>
 #include <SPI.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 class MX25Logger {
   public:
     MX25Logger();
-    
-    // ★ 수정: 특정 SPI 채널 객체의 포인터(&)를 받아 독립적으로 작동합니다.
+
     bool begin(SPIClass *spi, int sck, int miso, int mosi, int cs);
     void eraseAll();
+
+    // 버퍼에 데이터를 추가만 합니다 (플래시 쓰기 없음, 뮤텍스 보호)
+    template <typename T>
+    void appendData(T& data) {
+      xSemaphoreTake(_bufferMutex, portMAX_DELAY);
+      uint16_t len = sizeof(T);
+      if (_bufferIndex + len <= BUFFER_SIZE) {
+        memcpy(&_dataBuffer[_bufferIndex], &data, len);
+        _bufferIndex += len;
+      }
+      xSemaphoreGive(_bufferMutex);
+    }
+
+    // 버퍼에 완성된 페이지(256바이트)가 있으면 플래시에 기록합니다 (뮤텍스 보호)
+    void flushPages();
+
+    // 남은 데이터를 모두 플래시에 기록합니다 (로깅 종료 시 호출)
     void forceFlushBuffer();
 
-    // ★ 수정: 라이브러리 내부로 이동된 바이너리 덤프 함수
-    // 인자로 Stream을 받아 Serial 뿐만 아니라 Bluetooth 등으로도 전송 가능합니다. (기본값: Serial)
     void dumpRawBinary(Stream &out = Serial);
 
-    template <typename T>
-    void logData(T& data) {
-      appendAndSliceData((uint8_t*)&data, sizeof(T));
-    }
+    // FlushTask에서 페이지가 차 있는지 확인용
+    bool hasFullPage();
 
     uint32_t getStartAddress() { return START_ADDRESS; }
     uint32_t getCurrentAddress() { return _currentFlashAddress; }
 
   private:
-    SPIClass *_spi; // 전달받은 SPI 채널을 기억할 포인터 변수
+    SPIClass *_spi;
     int _csPin;
     uint32_t _currentFlashAddress;
-    
+
     static const uint16_t BUFFER_SIZE = 2048;
     uint8_t _dataBuffer[BUFFER_SIZE];
     uint16_t _bufferIndex;
 
+    SemaphoreHandle_t _bufferMutex;
+
     const uint32_t START_ADDRESS = 0x1000000;
 
-    void appendAndSliceData(uint8_t *data, uint16_t len);
+    void writePage(uint8_t *page);
     void readFlash(uint32_t addr, uint8_t *buf, uint32_t len);
     void eraseSector(uint32_t addr);
     void writeEnable();

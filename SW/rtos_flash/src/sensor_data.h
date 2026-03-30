@@ -7,6 +7,7 @@
 
 //공용 헤더 구조체 정의
 struct PacketHeader {
+  uint8_t SYNC_BYTE = 0xAA;  // 0xAA
   uint8_t id;   // 센서 종류 (0~255)
   uint8_t len;  // 이 패킷의 전체 크기 (헤더 2바이트 포함, 최대 255바이트)
 };

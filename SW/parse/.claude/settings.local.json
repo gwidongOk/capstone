@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python header_parser.py)",
+      "Bash(gcc --version)",
+      "Bash(gcc -dumpmachine)",
+      "Bash(where gcc.exe)",
+      "Read(//c/msys64/mingw64/bin/**)",
+      "Read(//c/mingw64/bin/**)",
+      "Read(//c/Program Files/**)",
+      "Bash(python -c \":*)",
+      "Bash(python -c \"from main import App; print\\(''OK''\\)\")"
+    ]
+  }
+}
