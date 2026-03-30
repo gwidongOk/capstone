@@ -9,8 +9,7 @@
 #define FLASH_MOSI_PIN  15
 #define FLASH_CS_PIN    6
 
-// ★ 핵심: ESP32-S3의 남는 SPI 버스(FSPI)를 독립적으로 할당합니다.
-// (일반 센서들은 기본 SPI(VSPI)를 사용하게 두면 완전히 격리됩니다.)
+// SPI 버스(FSPI)를 독립적으로 할당합니다.
 SPIClass flashSPI(FSPI); 
 
 MX25Logger logger;
