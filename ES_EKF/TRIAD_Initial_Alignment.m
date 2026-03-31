@@ -9,8 +9,9 @@ function q_init = TRIAD_Initial_Alignment(acc, mag)
     % q_init : 초기 쿼터니언 [qw; qx; qy; qz]
 
     %% 1. 기준 벡터 정의 (NED 좌표계 기준)
-    r1 = [0; 0; 1];  % Reference 1: Down (중력 방향)
-    r2 = [1; 0; 0];  % Reference 2: North (자기 북쪽 방향)
+    S  = SensorSpec;
+    r1 = [0; 0; 1];          % Reference 1: Down (중력 방향)
+    r2 = S.m_ref_ned;        % Reference 2: 지자기 기준벡터 (편각 포함)
 
     %% 2. 관측 벡터 정의 및 부호 교정 (Body 좌표계 기준)
     % 사용자님의 센서 특성: 코(Body X)가 하늘을 향할 때 +9.81이 측정됨.

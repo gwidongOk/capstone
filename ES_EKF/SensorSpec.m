@@ -28,7 +28,7 @@ classdef SensorSpec
         var_baro  (1,1) double = 0.191^2     % [m]
 
         % 지자기 (MMC5983MA) — 단위벡터 기준 노이즈
-        var_mag     (1,1) double = 0.0008^2  % [-] (0.04µT RMS / 지구자기장 ~50µT)^2
+        var_mag     (1,1) double = 0.0008^2 %0.02^2  % [-] (0.04µT RMS / 지구자기장 ~50µT)^2 =0.0008²
         % Heading-only 업데이트용 분산 (전기적 노이즈 + 캘리브레이션 잔차 + 환경 간섭)
         var_mag_heading (1,1) double = (3 * pi/180)^2  % [rad²] ≈ 3° 1σ
 

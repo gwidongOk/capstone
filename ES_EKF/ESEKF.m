@@ -91,7 +91,7 @@ classdef ESEKF < handle
 
             theta = w_hat * dt;
             th_n  = norm(theta);
-            if th_n > 1e-10
+            if th_n > 1e10
                 dq = [cos(th_n/2); sin(th_n/2)/th_n * theta];
             else
                 dq = [1; theta/2];

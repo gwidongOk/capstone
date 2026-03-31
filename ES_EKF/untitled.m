@@ -3,7 +3,7 @@ clear; clc; close all;
 
 %% 1. 가짜 센서 데이터 불러오기 (시나리오 선택)
 % 'static', 'linear', 'accel', 'turn' 중 선택
-scenario_name = 'accel'; 
+scenario_name = 'static'; 
 disp(['시뮬레이션 데이터 생성 중... (시나리오: ', scenario_name, ')']);
 data = generate_sim_data(scenario_name);
 

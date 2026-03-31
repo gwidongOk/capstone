@@ -9,7 +9,14 @@
       "Read(//c/mingw64/bin/**)",
       "Read(//c/Program Files/**)",
       "Bash(python -c \":*)",
-      "Bash(python -c \"from main import App; print\\(''OK''\\)\")"
+      "Bash(python -c \"from main import App; print\\(''OK''\\)\")",
+      "Bash(npm list:*)",
+      "Bash(pip show:*)",
+      "Bash(pip install:*)",
+      "Bash(python create_pptx.py)",
+      "Bash(python -m markitdown \"C:/Users/pc/Documents/capstone/capstone/ES_EKF/ESEKF_Presentation.pptx\")",
+      "Bash(where.exe soffice:*)",
+      "Bash(python esekf_flowchart.py)"
     ]
   }
 }
