@@ -49,7 +49,20 @@ def parse_header(header_path):
     structs = {}
     for sname, body in raw_structs.items():
         if sname == 'PacketHeader': continue
-        pkt_id = id_map.get(sname.lower())
+
+        # 구조체 이름에서 ID 매칭: "baro_pkt" → "baro", "imu_pkt" → "imu"
+        sname_lower = sname.lower()
+        pkt_id = id_map.get(sname_lower)
+        if pkt_id is None:
+            # _pkt 접미사 제거 후 재시도
+            stripped = sname_lower.replace('_pkt', '').replace('_packet', '')
+            pkt_id = id_map.get(stripped)
+        if pkt_id is None:
+            # ID 키가 구조체 이름에 포함되는지 확인
+            for key, val in id_map.items():
+                if key in sname_lower:
+                    pkt_id = val
+                    break
         if pkt_id is None: continue
 
         fields, fmt_codes = [], ['<']
