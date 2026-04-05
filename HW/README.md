@@ -1,4 +1,2 @@
 # capstone
-[[카나드 로켓 항법 시스템](https://oshwlab.com/okd1031/project_fhkyhitb)]
-(https://oshwlab.com/okd1031/project_fhkyhitb)
-test
+https://pro.easyeda.com/editor#id=fc41509b8bbd4287912a16fa1826df62
