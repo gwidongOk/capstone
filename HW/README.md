@@ -1,3 +1,4 @@
 # capstone
-[카나드 로켓 항법 시스템](https://oshwlab.com/okd1031/project_fhkyhitb)
+[[카나드 로켓 항법 시스템](https://oshwlab.com/okd1031/project_fhkyhitb)]
+(https://oshwlab.com/okd1031/project_fhkyhitb)
 test
