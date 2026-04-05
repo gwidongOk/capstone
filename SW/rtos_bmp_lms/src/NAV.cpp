@@ -6,7 +6,7 @@ NAV::NAV() {
     state_press = {0, 0.0f, 0.0f};
 }
 
-Raw_imu NAV::axis(Raw_imu data) {
+Raw_imu NAV::imu_axis(Raw_imu data) {
     Raw_imu aligned;
     // ★ 실제 보드 부착 방향에 맞춰 축을 맵핑하세요.
     aligned.timestamp = data.timestamp;
@@ -17,7 +17,7 @@ Raw_imu NAV::axis(Raw_imu data) {
 }
 
 void NAV::updateAccel(Raw_imu raw) {
-    raw_acc = axis(raw);
+    raw_acc = imu_axis(raw);
     
     // 가속도는 1G 중력이 유지되어야 하므로 영점 보정을 뺍니다!
     state_acc.x = raw_acc.x * ACCEL_SCALE;
@@ -27,7 +27,7 @@ void NAV::updateAccel(Raw_imu raw) {
 }
 
 void NAV::updateGyro(Raw_imu raw) {
-    raw_gyro = axis(raw);
+    raw_gyro = imu_axis(raw);
     
     // Raw 데이터에서 캘리브레이션 바이어스 빼기
     float corr_x = (float)raw_gyro.x - gyro_bias_x;
@@ -55,7 +55,7 @@ float NAV::getAltitude(float current_pressure) {
 // 초기 캘리브레이션 세팅
 // =======================================================
 void NAV::calibrateGyro(float sum_x, float sum_y, float sum_z, int samples) {
-    Raw_imu sum_aligned = axis({0, (int16_t)sum_x, (int16_t)sum_y, (int16_t)sum_z});
+    Raw_imu sum_aligned = imu_axis({0, (int16_t)sum_x, (int16_t)sum_y, (int16_t)sum_z});
     gyro_bias_x = sum_aligned.x / (float)samples;
     gyro_bias_y = sum_aligned.y / (float)samples;
     gyro_bias_z = sum_aligned.z / (float)samples;

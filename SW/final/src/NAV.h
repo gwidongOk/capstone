@@ -11,7 +11,7 @@ struct Raw_imu {
 
 struct RocketState_imu {
     unsigned long timestamp;
-    float x, y, z; 
+    float x, y, z;
 };
 
 struct Raw_press {
@@ -21,8 +21,8 @@ struct Raw_press {
 
 struct RocketState_PRESS {
     unsigned long timestamp;
-    float pressure; 
-    float altitude; 
+    float pressure;
+    float altitude;
 };
 
 class NAV {
@@ -31,30 +31,31 @@ private:
     RocketState_imu state_acc, state_gyro;
     RocketState_PRESS state_press;
 
-    // imu 센서 부착 방향에 맞춘 축 변환
-    Raw_imu imu_axis(Raw_imu data);
+    // 캘리브레이션 바이어스 (float — 평균값이므로 소수점 유지 필수)
+    float c_accel_x = 0.0f, c_accel_y = 0.0f, c_accel_z = 0.0f;
+    float c_gyro_x  = 0.0f, c_gyro_y  = 0.0f, c_gyro_z  = 0.0f;
 
-    const float ACCEL_SCALE = 0.976f * 0.001f * 9.80665f; 
-    const float GYRO_SCALE = 70.0f * 0.001f * (M_PI / 180.0f); 
+    // 센서 부착 방향에 맞춘 축 변환
+    Raw_imu axis(Raw_imu data);
 
-    float _padAltitude = 0.0f; 
+    const float ACCEL_SCALE = 0.976f * 0.001f * 9.80665f;
+    const float GYRO_SCALE = 70.0f * 0.001f * (M_PI / 180.0f);
+
+    float _padpressure = 101325.0f;
     float getAltitude(float current_pressure);
-
-    // ★ 자이로 바이어스는 음수일 수 있으므로 반드시 float 형태를 유지해야 합니다.
-    float gyro_bias_x = 0.0f, gyro_bias_y = 0.0f, gyro_bias_z = 0.0f; 
 
 public:
     NAV();
-    
+
     // 센서 Task에서 호출하는 업데이트 함수
     void updateAccel(Raw_imu raw);
     void updateGyro(Raw_imu raw);
     void updatePress(Raw_press press);
-    
-    // main.cpp의 setup에서 한 번에 캘리브레이션을 처리하는 함수
-    void calibrateGyro(float sum_x, float sum_y, float sum_z, int samples);
-    void calibratePress(float sum_p, int samples);
-    
+
+    // 캘리브레이션 (float 평균값을 직접 전달)
+    void calibrate(float c_gx, float c_gy, float c_gz,
+                   float c_ax, float c_ay, float c_az, float c_p);
+
     // NAV_Task에서 데이터를 꺼내갈 때 사용
     RocketState_imu getState_acc();
     RocketState_imu getState_gyro();

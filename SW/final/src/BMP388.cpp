@@ -18,8 +18,11 @@ bool BMP388::begin() {
 
     readCalibrationData();
 
-    setOversampling(0x02, 0x00); 
-    setIIRFilter(0x01);          
+    // 압력 ×8 (osr_p=011), 온도 ×1 (osr_t=000)
+    setOversampling(0x03, 0x00);
+    // IIR 필터: Off
+    setIIRFilter(0x00);
+    // ODR: 25Hz (Normal Mode 기준 충분)
     setODR(0x02);               
 
     writeRegister(REG_INT_CTRL, 0x46);
@@ -72,8 +75,24 @@ bool BMP388::readData(float &pressure) {
     return true;
 }
 
-void BMP388::calibrate(float& c_p){
-    
+void BMP388::calibrate(float &c_p)
+{
+    float sum_p = 0.0f;
+    for (int i = 0; i < 50; i++)
+    {
+        float d;
+        readData(d);
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+
+    for (int i = 0; i < 100; i++)
+    {
+        float p;
+        readData(p);
+        sum_p += p;
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+    c_p = sum_p / 100.0f;
 }
 
 uint8_t BMP388::readRegister(uint8_t reg) {
