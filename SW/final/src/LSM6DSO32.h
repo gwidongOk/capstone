@@ -35,9 +35,9 @@ public:
     void enableAccelDataReadyInterrupt(uint8_t intPin = 1);
     void enableGyroDataReadyInterrupt(uint8_t intPin = 2);
 
-    // 순수 Raw 데이터만 반환합니다.
-    void readRawAccel(int16_t &ax, int16_t &ay, int16_t &az);
-    void readRawGyro(int16_t &gx, int16_t &gy, int16_t &gz);
+    // Gyro(0x22) + Accel(0x28) 12바이트 버스트 리드
+    void readRawIMU(int16_t &gx, int16_t &gy, int16_t &gz,
+                    int16_t &ax, int16_t &ay, int16_t &az);
 
     void calibrate(float &gx, float &gy, float &gz,float &ax, float &ay, float &az);
 };

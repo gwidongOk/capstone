@@ -84,9 +84,8 @@ void performCalibration() {
 
   // 잔여 데이터 클리어
   if (xSemaphoreTake(spiMutex, portMAX_DELAY) == pdTRUE) {
-    int16_t d1, d2, d3; float d0;
-    imu.readRawAccel(d1, d2, d3);
-    imu.readRawGyro(d1, d2, d3);
+    int16_t d1, d2, d3, d4, d5, d6; float d0;
+    imu.readRawIMU(d1, d2, d3, d4, d5, d6);
     bmp.readData(d0);
     xSemaphoreGive(spiMutex);
   }
@@ -188,20 +187,17 @@ void processCommandTask(void *pvParameters) {
 // Core 1 : 센서 수집 태스크
 // ============================================================
 void IMU_Task(void *pvParameters) {
-  Raw_imu raw_acc, raw_gyro;
+  Raw_imu raw;
   for (;;) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     uint32_t ts = getTimeUs32();
     if (xSemaphoreTake(spiMutex, portMAX_DELAY) == pdTRUE) {
-      raw_acc.timestamp = ts;
-      raw_gyro.timestamp = ts;
-      imu.readRawAccel(raw_acc.x, raw_acc.y, raw_acc.z);
-      imu.readRawGyro(raw_gyro.x, raw_gyro.y, raw_gyro.z);
+      raw.timestamp = ts;
+      imu.readRawIMU(raw.gx, raw.gy, raw.gz, raw.ax, raw.ay, raw.az);
       xSemaphoreGive(spiMutex);
     }
     if (xSemaphoreTake(dataMutex, portMAX_DELAY) == pdTRUE) {
-      nav.updateAccel(raw_acc);
-      nav.updateGyro(raw_gyro);
+      nav.updateIMU(raw);
       xSemaphoreGive(dataMutex);
     }
     xTaskNotify(TaskHandle_NAV, EVENT_IMU_UPDATE, eSetBits);
@@ -235,8 +231,7 @@ void NAV_Task(void *pvParameters) {
     xTaskNotifyWait(0x00, 0xFFFFFFFF, &notifiedValue, portMAX_DELAY);
     if (xSemaphoreTake(dataMutex, portMAX_DELAY) == pdTRUE) {
       if (notifiedValue & EVENT_IMU_UPDATE) {
-        Raw_imu ra = nav.getraw_acc();
-        Raw_imu rg = nav.getraw_gyro();
+        Raw_imu ri = nav.getRaw_imu();
         int64_t now_us = getTimeUs();
 
         // dt 계산 (64-bit 오버플로우 안전)
@@ -246,7 +241,7 @@ void NAV_Task(void *pvParameters) {
         lastImuTime_us = now_us;
 
         // ★ EKF predict 삽입 지점
-        // nav.ekfPredict(acc_state, gyro_state, dt);
+        // nav.ekfPredict(state_imu, dt);
 
         if (isLogging) {
           imu_pkt pkt;
@@ -254,12 +249,12 @@ void NAV_Task(void *pvParameters) {
           pkt.header.id = 2;
           pkt.header.len = sizeof(imu_pkt);
           pkt.t = (uint32_t)(now_us & 0xFFFFFFFF);
-          pkt.rawacc_x = ra.x;
-          pkt.rawacc_y = ra.y;
-          pkt.rawacc_z = ra.z;
-          pkt.rawgyro_x = rg.x;
-          pkt.rawgyro_y = rg.y;
-          pkt.rawgyro_z = rg.z;
+          pkt.rawacc_x  = ri.ax;
+          pkt.rawacc_y  = ri.ay;
+          pkt.rawacc_z  = ri.az;
+          pkt.rawgyro_x = ri.gx;
+          pkt.rawgyro_y = ri.gy;
+          pkt.rawgyro_z = ri.gz;
           LogItem item;
           item.len = sizeof(imu_pkt);
           memcpy(item.data, &pkt, item.len);
@@ -346,9 +341,8 @@ void setup() {
   }
 
   // 센서 버퍼 클리어
-  int16_t d1, d2, d3; float d0;
-  imu.readRawAccel(d1, d2, d3);
-  imu.readRawGyro(d1, d2, d3);
+  int16_t d1, d2, d3, d4, d5, d6; float d0;
+  imu.readRawIMU(d1, d2, d3, d4, d5, d6);
   bmp.readData(d0);
 
   // 태스크 생성

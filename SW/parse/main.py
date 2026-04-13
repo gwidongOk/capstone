@@ -56,7 +56,7 @@ class SerialReader(threading.Thread):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("ALTIS Avionics Data Analyzer")
+        self.title("Avionics Data Analyzer")
         self.geometry("1100x700")
         self.packet_queue = queue.Queue()
         self.raw_bytes = bytearray()

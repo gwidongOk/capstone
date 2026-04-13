@@ -59,8 +59,7 @@ void LSM6DSO32::calibrate(float &c_gx, float &c_gy, float &c_gz,
     int16_t gx, gy, gz;
     int16_t ax, ay, az;
     
-    readRawGyro(gx, gy, gz);
-    readRawAccel(ax, ay, az);
+    readRawIMU(gx, gy, gz, ax, ay, az);
     
     sum_gx += gx; sum_gy += gy; sum_gz += gz;
     sum_ax += ax; sum_ay += ay; sum_az += az;
@@ -87,20 +86,16 @@ void LSM6DSO32::enableGyroDataReadyInterrupt(uint8_t intPin) {
     writeRegister(reg, readRegister(reg) | 0x02); 
 }
 
-void LSM6DSO32::readRawAccel(int16_t &ax, int16_t &ay, int16_t &az) {
-    uint8_t buffer[6];
-    readRegisters(REG_OUTX_L_A, buffer, 6);
-    ax = (int16_t)((buffer[1] << 8) | buffer[0]);
-    ay = (int16_t)((buffer[3] << 8) | buffer[2]);
-    az = (int16_t)((buffer[5] << 8) | buffer[4]);
-}
-
-void LSM6DSO32::readRawGyro(int16_t &gx, int16_t &gy, int16_t &gz) {
-    uint8_t buffer[6];
-    readRegisters(REG_OUTX_L_G, buffer, 6);
-    gx = (int16_t)((buffer[1] << 8) | buffer[0]);
-    gy = (int16_t)((buffer[3] << 8) | buffer[2]);
-    gz = (int16_t)((buffer[5] << 8) | buffer[4]);
+void LSM6DSO32::readRawIMU(int16_t &gx, int16_t &gy, int16_t &gz,
+                           int16_t &ax, int16_t &ay, int16_t &az) {
+    uint8_t buffer[12];
+    readRegisters(REG_OUTX_L_G, buffer, 12);  // 0x22~0x2D 연속 읽기
+    gx = (int16_t)((buffer[1]  << 8) | buffer[0]);
+    gy = (int16_t)((buffer[3]  << 8) | buffer[2]);
+    gz = (int16_t)((buffer[5]  << 8) | buffer[4]);
+    ax = (int16_t)((buffer[7]  << 8) | buffer[6]);
+    ay = (int16_t)((buffer[9]  << 8) | buffer[8]);
+    az = (int16_t)((buffer[11] << 8) | buffer[10]);
 }
 
 uint8_t LSM6DSO32::readRegister(uint8_t reg) {
