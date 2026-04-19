@@ -37,6 +37,10 @@ bool gps_calibrate(const GPS_Raw &raw) {
         Serial.println("[NAV] Cannot calibrate: no 3D fix");
         return false;
     }
+    if (raw.hAcc > 2500 && raw.vAcc > 5000) {
+        Serial.printf("[NAV] Accuracy too low (%.2fm). Waiting to converge...\n", raw.hAcc * 0.001f);
+        return false;
+    }
     double lat = raw.lat * 1e-7;
     double lon = raw.lon * 1e-7;
     double alt = raw.alt * 1e-3;
@@ -103,19 +107,13 @@ void processCommand(const String &cmd) {
     }
 }
 
-// ── Setup & Loop ────────────────────────────────────────
-
 void setup() {
     Serial.begin(115200);
     delay(2000);
-    Serial.println("=== NEO-M9N GPS (Rocket Mode) ===");
-
     if (!gps.begin(25)) {
         Serial.println("[GPS] Init FAILED — check wiring");
         while (1) delay(1000);
     }
-
-    Serial.println("[GPS] Ready. Type CAL to set origin.");
 }
 
 void loop() {
@@ -123,13 +121,16 @@ void loop() {
         GPS_Raw raw = gps.getRaw();
         GPS_NED ned = gps_to_ned(raw);
 
-        Serial.printf("N:%7.2f E:%7.2f D:%7.2f [m]  "
-                       "Vn:%6.2f Ve:%6.2f Vd:%6.2f [m/s]  "
-                       "fix=%d sats=%d %s\n",
-                       ned.n, ned.e, ned.d,
-                       ned.vn, ned.ve, ned.vd,
-                       ned.fixType, ned.numSV,
-                       origin_set ? "" : "(no origin)");
+        Serial.printf("%lu,"
+                      "%.6f,%.6f,%.6f,"
+                      "%.6f,%.6f,%.6f,"
+                      "%.8f,%.8f,%.8f,"
+                      "%d,%d\n",
+                      (unsigned long)millis(),
+                      ned.n, ned.e, ned.d,
+                      ned.vn, ned.ve, ned.vd,
+                      ned.hAcc, ned.vAcc, ned.sAcc,
+                      ned.fixType, ned.numSV);
     }
 
     while (Serial.available()) {

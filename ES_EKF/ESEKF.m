@@ -146,6 +146,7 @@ classdef ESEKF < handle
 
             obj.measurement_update(H, y, obj.par.R_baro);
         end
+        %% ── update_ㅡmag ──────────────────────────────────────────────────        
         function update_mag(obj, z)
             z_n = z / norm(z);
             R_nb = NavUtils.quat2dcm(obj.nom.q);

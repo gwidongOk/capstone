@@ -155,6 +155,95 @@ void MMC5983MA::readMag(float &mx, float &my, float &mz) {
     mz = ((float)rz - 131072.0f) / 16384.0f;
 }
 
+// ==================== Calibration ====================
+
+void MMC5983MA::calibrate(uint32_t durationMs) {
+    Serial.println();
+    Serial.println("=== Magnetometer Calibration ===");
+    Serial.printf("Rotate the board in ALL orientations for %lu s (figure-8).\n",
+                  durationMs / 1000);
+    Serial.println("Start in 3..."); delay(1000);
+    Serial.println("      2...");    delay(1000);
+    Serial.println("      1...");    delay(1000);
+    Serial.println("GO!");
+
+    // Boost CMM rate during calibration; applyDefaults() restores afterwards.
+    setContinuousFrequency(1000);
+    clearInterruptFlag();
+
+    float minX =  1e9f, maxX = -1e9f;
+    float minY =  1e9f, maxY = -1e9f;
+    float minZ =  1e9f, maxZ = -1e9f;
+    uint32_t samples = 0;
+
+    const uint32_t start = millis();
+    uint32_t lastReport  = start;
+
+    while (millis() - start < durationMs) {
+        const uint32_t t0 = millis();
+        while (!isDataReady()) {
+            if (millis() - t0 > 50) break;
+        }
+        if (!isDataReady()) continue;
+
+        float mx, my, mz;
+        readMag(mx, my, mz);
+        clearInterruptFlag();
+
+        if (mx < minX) minX = mx;  if (mx > maxX) maxX = mx;
+        if (my < minY) minY = my;  if (my > maxY) maxY = my;
+        if (mz < minZ) minZ = mz;  if (mz > maxZ) maxZ = mz;
+        samples++;
+
+        if (millis() - lastReport >= 1000) {
+            lastReport = millis();
+            uint32_t remain = (durationMs - (millis() - start)) / 1000;
+            Serial.printf("  [%2lus] X[%+.3f,%+.3f] Y[%+.3f,%+.3f] Z[%+.3f,%+.3f]\n",
+                          remain, minX, maxX, minY, maxY, minZ, maxZ);
+        }
+    }
+
+    // Hard-iron: midpoint of min/max per axis
+    _bias[0] = 0.5f * (maxX + minX);
+    _bias[1] = 0.5f * (maxY + minY);
+    _bias[2] = 0.5f * (maxZ + minZ);
+
+    // Soft-iron: normalize each axis radius to mean radius
+    float rX = 0.5f * (maxX - minX);
+    float rY = 0.5f * (maxY - minY);
+    float rZ = 0.5f * (maxZ - minZ);
+    float rAvg = (rX + rY + rZ) / 3.0f;
+    _scale[0] = (rX > 1e-6f) ? (rAvg / rX) : 1.0f;
+    _scale[1] = (rY > 1e-6f) ? (rAvg / rY) : 1.0f;
+    _scale[2] = (rZ > 1e-6f) ? (rAvg / rZ) : 1.0f;
+
+    applyDefaults();
+    clearInterruptFlag();
+
+    Serial.println("=== Calibration complete ===");
+    Serial.printf("  samples : %lu\n", samples);
+    Serial.printf("  bias  (Gauss): %+.4f  %+.4f  %+.4f\n",
+                  _bias[0], _bias[1], _bias[2]);
+    Serial.printf("  scale        : %.4f  %.4f  %.4f\n",
+                  _scale[0], _scale[1], _scale[2]);
+}
+
+bool MMC5983MA::readCalibratedMag(float &mx, float &my, float &mz) {
+    float sx, sy, sz;
+    readMag(sx, sy, sz);
+
+    // Hard-iron + soft-iron (sensor frame)
+    sx = (sx - _bias[0]) * _scale[0];
+    sy = (sy - _bias[1]) * _scale[1];
+    sz = (sz - _bias[2]) * _scale[2];
+
+    // Body-frame remap (edit if MAG is mounted differently from body frame)
+    mx = sx;
+    my = sy;
+    mz = sz;
+    return true;
+}
+
 // ==================== Interrupt ====================
 
 void MMC5983MA::enableDataReadyInterrupt(bool enable) {

@@ -72,6 +72,10 @@ private:
     uint8_t _shadowCtrl2 = 0x00;
     uint8_t _shadowCtrl3 = 0x00;
 
+    // Calibration state — Gauss domain
+    float _bias[3]  = {0.0f, 0.0f, 0.0f};
+    float _scale[3] = {1.0f, 1.0f, 1.0f};
+
     // I2C low-level
     uint8_t readRegister(uint8_t reg);
     void    readRegisters(uint8_t reg, uint8_t* buffer, uint8_t len);
@@ -125,6 +129,15 @@ public:
     // and no precision loss (18-bit fits in 24-bit mantissa).
     // Caller still applies hard-iron / soft-iron calibration.
     void readMag(float &mx, float &my, float &mz);
+
+    // ===== Calibration =====
+    // Blocking ~durationMs. User rotates board in figure-8 covering all orientations.
+    // Stores hard-iron bias and soft-iron scale internally (in Gauss).
+    void calibrate(uint32_t durationMs = 30000);
+
+    // Read fully calibrated Gauss (hard+soft iron + body-frame axis).
+    // Body-frame axis: pass-through (edit if MAG is mounted rotated).
+    bool readCalibratedMag(float &mx, float &my, float &mz);
 
     // ===== Interrupt =====
     void enableDataReadyInterrupt(bool enable);
