@@ -64,10 +64,20 @@ void initBLE(const char *deviceName) {
   pServer->start();
 
   // 광고 설정
+  // 128-bit UUID(18B) + Flags(3B) + Name(11B) = 32B → 31B 초과
+  // → ADV 패킷에는 UUID만 넣고, Name은 Scan Response에 분리 배치
   NimBLEAdvertising *pAdv = NimBLEDevice::getAdvertising();
-  pAdv->reset();                      // 기존 광고 데이터 초기화
-  pAdv->setName(deviceName);          // 광고 패킷에 디바이스 이름 포함
-  pAdv->addServiceUUID("6E400001-B5A3-F393-E0A9-E50E24DCCA9E");
+  pAdv->reset();
+
+  NimBLEAdvertisementData advData;
+  advData.setFlags(BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP);
+  advData.addServiceUUID("6E400001-B5A3-F393-E0A9-E50E24DCCA9E");
+  pAdv->setAdvertisementData(advData);
+
+  NimBLEAdvertisementData scanResp;
+  scanResp.setName(deviceName);
+  pAdv->setScanResponseData(scanResp);
+
   pAdv->enableScanResponse(true);
   pAdv->setMinInterval(0x20);         // 20ms — 빠른 검색
   pAdv->setMaxInterval(0x40);         // 40ms
