@@ -8,7 +8,7 @@ clc; close all;
 time_s = time_ms / 1e3;
 
 % === 2. 튜닝 배수 (Scale Factor) 설정 ===
-tune_scale = 1.0; 
+tune_scale = 3.0; 
 
 % --- 1. 그래프 중앙 정렬을 위한 기준점(평균) 계산 ---
 mean_N_p = mean(N_p, 'omitnan'); mean_E_p = mean(E_p, 'omitnan'); mean_D_p = mean(D_p, 'omitnan');
@@ -25,36 +25,36 @@ scaled_s_std_mean = mean(scaled_s_std_array);
 
 fprintf("scaled_h_std_mean %e \n",scaled_h_std_mean);
 fprintf("scaled_v_std_mean %e \n",scaled_v_std_mean);
-fprintf("scaled_v_std_mean %e \n",scaled_s_std_mean);
+fprintf("scaled_s_std_mean %e \n",scaled_s_std_mean);
 
 % [Figure 1] 위치(Position) NED 데이터 vs 실시간 튜닝 바운더리
 fig_pos = figure('Name', 'Position Drift vs Scaled Sensor Bounds', 'Position', [100, 100, 1000, 800]);
 
 % N축
 subplot(3,1,1);
-plot(time_s, N_p - mean_N_p, 'r', 'LineWidth', 1.2, 'DisplayName', 'N축 실제 변동'); hold on;
-plot(time_s, scaled_h_std_array, 'k--', 'LineWidth', 1.5, 'DisplayName', '+1\sigma (hAcc * Scale)');
-plot(time_s, -scaled_h_std_array, 'k--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+plot(time_s, N_p - mean_N_p, 'r', 'LineWidth', 2, 'DisplayName', 'N축 실제 변동'); hold on;
+plot(time_s, scaled_h_std_array, 'k--', 'LineWidth', 2, 'DisplayName', '+1\sigma (hAcc * Scale)');
+plot(time_s, -scaled_h_std_array, 'k--', 'LineWidth', 2, 'HandleVisibility', 'off');
 grid on; hold off;
 ylabel('North [m]'); title(sprintf('NED Position Drift vs Sensor Estimated Bounds (Scale: %.1f)', tune_scale));
 legend('show', 'Location', 'best');
 
 % E축
 subplot(3,1,2);
-plot(time_s, E_p - mean_E_p, 'g', 'LineWidth', 1.2, 'DisplayName', 'E축 실제 변동'); hold on;
-plot(time_s, scaled_h_std_array, 'k--', 'LineWidth', 1.5, 'DisplayName', '+1\sigma (hAcc * Scale)');
-plot(time_s, -scaled_h_std_array, 'k--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+plot(time_s, E_p - mean_E_p, 'g', 'LineWidth', 2, 'DisplayName', 'E축 실제 변동'); hold on;
+plot(time_s, scaled_h_std_array, 'k--', 'LineWidth', 2, 'DisplayName', '+1\sigma (hAcc * Scale)');
+plot(time_s, -scaled_h_std_array, 'k--', 'LineWidth', 2, 'HandleVisibility', 'off');
 grid on; hold off;
 ylabel('East [m]');
 legend('show', 'Location', 'best');
 
 % D축 (고도)
 subplot(3,1,3);
-plot(time_s, D_p - mean_D_p, 'b', 'LineWidth', 1.2, 'DisplayName', 'D축 실제 변동'); hold on;
-plot(time_s, scaled_v_std_array, 'k--', 'LineWidth', 1.5, 'DisplayName', '+1\sigma (vAcc * Scale)');
-plot(time_s, -scaled_v_std_array, 'k--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+plot(time_s, D_p - mean_D_p, 'b', 'LineWidth', 2, 'DisplayName', 'D축 실제 변동'); hold on;
+plot(time_s, scaled_v_std_array, 'k--', 'LineWidth', 2, 'DisplayName', '+1\sigma (vAcc * Scale)');
+plot(time_s, -scaled_v_std_array, 'k--', 'LineWidth', 2, 'HandleVisibility', 'off');
 grid on; hold off;
-xlabel('Time [s]'); ylabel('Down [m]');
+xlabel('Time [sec]'); ylabel('Down [m]');
 legend('show', 'Location', 'best');
 
 linkaxes(findobj(fig_pos, 'type', 'axes'), 'x');
@@ -65,27 +65,27 @@ fig_vel = figure('Name', 'Velocity Noise vs Scaled Sensor Bounds', 'Position', [
 
 % Vn 속도
 subplot(3,1,1);
-plot(time_s, N_s, 'r', 'LineWidth', 1.2, 'DisplayName', 'Vn 실제 속도'); hold on;
-plot(time_s, scaled_s_std_array, 'k--', 'LineWidth', 1.5, 'DisplayName', '+1\sigma (sAcc * Scale)');
-plot(time_s, -scaled_s_std_array, 'k--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+plot(time_s, N_s, 'r', 'LineWidth', 2, 'DisplayName', 'Vn 실제 속도'); hold on;
+plot(time_s, scaled_s_std_array, 'k--', 'LineWidth', 2, 'DisplayName', '+1\sigma (sAcc * Scale)');
+plot(time_s, -scaled_s_std_array, 'k--', 'LineWidth', 2, 'HandleVisibility', 'off');
 grid on; hold off;
 ylabel('Vn [m/s]'); title(sprintf('NED Velocity Noise vs Sensor Estimated Bounds (Scale: %.1f)', tune_scale));
 legend('show', 'Location', 'best');
 
 % Ve 속도
 subplot(3,1,2);
-plot(time_s, E_s, 'g', 'LineWidth', 1.2, 'DisplayName', 'Ve 실제 속도'); hold on;
-plot(time_s, scaled_s_std_array, 'k--', 'LineWidth', 1.5, 'DisplayName', '+1\sigma (sAcc * Scale)');
-plot(time_s, -scaled_s_std_array, 'k--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+plot(time_s, E_s, 'g', 'LineWidth', 2, 'DisplayName', 'Ve 실제 속도'); hold on;
+plot(time_s, scaled_s_std_array, 'k--', 'LineWidth', 2, 'DisplayName', '+1\sigma (sAcc * Scale)');
+plot(time_s, -scaled_s_std_array, 'k--', 'LineWidth', 2, 'HandleVisibility', 'off');
 grid on; hold off;
 ylabel('Ve [m/s]');
 legend('show', 'Location', 'best');
 
 % Vd 속도
 subplot(3,1,3);
-plot(time_s, D_s, 'b', 'LineWidth', 1.2, 'DisplayName', 'Vd 실제 속도'); hold on;
-plot(time_s, scaled_s_std_array, 'k--', 'LineWidth', 1.5, 'DisplayName', '+1\sigma (sAcc * Scale)');
-plot(time_s, -scaled_s_std_array, 'k--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+plot(time_s, D_s, 'b', 'LineWidth', 2, 'DisplayName', 'Vd 실제 속도'); hold on;
+plot(time_s, scaled_s_std_array, 'k--', 'LineWidth', 2, 'DisplayName', '+1\sigma (sAcc * Scale)');
+plot(time_s, -scaled_s_std_array, 'k--', 'LineWidth', 2, 'HandleVisibility', 'off');
 grid on; hold off;
 xlabel('Time [s]'); ylabel('Vd [m/s]');
 legend('show', 'Location', 'best');

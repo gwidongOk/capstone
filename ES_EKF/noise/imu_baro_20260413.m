@@ -51,7 +51,7 @@ plot(t_imu_s, acc_z_mps2-mean_acc_z);
 grid on;
 hold off;
 legend('acc_x','acc_y','acc_z');
-xlabel('time'); ylabel('m/s^2');
+xlabel('time [sec]'); ylabel('Accel [m/s^2]');
 title(sprintf('Accel\n Mean: x: %e, y: %e, z: %e \n Var: x: %e, y: %e, z: %e ', ...
     mean_acc_x,mean_acc_y,mean_acc_z,var_acc_x,var_acc_y,var_acc_z));
 
@@ -65,11 +65,11 @@ hold off;
 title(sprintf('Gyro\n Mean: x: %e, y: %e, z: %e \n Var: x: %e, y: %e, z: %e ', ...
     mean_gyro_x,mean_gyro_y,mean_gyro_z,var_gyro_x,var_gyro_y,var_gyro_z));
 legend('gyro_x','gyro_y','gyro_z');
-xlabel('time'); ylabel('rad/s');
+xlabel('time [sec]'); ylabel('gyro [rad/s]');
 
 figure;
 plot(t_baro_s, detrended_alt);
 grid on;
-xlabel('time'); ylabel('altitude');
+xlabel('time [sec]'); ylabel('altitude [m]');
 title(sprintf('Baro\n Mean: %.3f \n Var: %.3f', ...
     mean_alt,var_alt));

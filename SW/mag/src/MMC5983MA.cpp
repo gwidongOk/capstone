@@ -18,11 +18,11 @@ bool MMC5983MA::begin() {
 }
 
 void MMC5983MA::applyDefaults() {
-    setFilterBandwidth(DEFAULT_BW_HZ);
+    setFilterBandwidth(DEFAULT_BW_HZ); //100hz
     enableAutoSetReset(true);
-    setPeriodicSetCount(DEFAULT_PRD_SET_CNT);
+    setPeriodicSetCount(DEFAULT_PRD_SET_CNT); //75
     enablePeriodicSet(true);
-    setContinuousFrequency(DEFAULT_CMM_HZ);
+    setContinuousFrequency(DEFAULT_CMM_HZ); //50hz
     enableContinuousMode(true);
 }
 
