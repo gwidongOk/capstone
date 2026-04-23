@@ -120,8 +120,8 @@ function data = generate_sim_data(scenario)
     
     for i = 1:Ng
         ki = data.gps_idx(i);
-        np = [S.sigma_gps_pos_h; S.sigma_gps_pos_h; S.sigma_gps_pos_v] .* randn(3,1);
-        nv = [S.sigma_gps_vel_h; S.sigma_gps_vel_h; S.sigma_gps_vel_v] .* randn(3,1);
+        np = sqrt([S.var_gps_pos_h; S.var_gps_pos_h; S.var_gps_pos_v]) .* randn(3,1);
+        nv = sqrt([S.var_gps_vel_h; S.var_gps_vel_h; S.var_gps_vel_v]) .* randn(3,1);
         data.z_gps(:,i) = [p_true(:,ki) + np; v_true(:,ki) + nv];
     end
 

@@ -64,13 +64,12 @@ classdef ESEKF < handle
             obj.par.var_bg   = S.var_bg;
 
             % R — 측정 노이즈
-            obj.par.R_gps  = diag([S.sigma_gps_pos_h^2, S.sigma_gps_pos_h^2, ...
-                                   S.sigma_gps_pos_v^2, ...
-                                   S.sigma_gps_vel_h^2, S.sigma_gps_vel_h^2, ...
-                                   S.sigma_gps_vel_v^2]);
+            obj.par.R_gps  = diag([S.var_gps_pos_h, S.var_gps_pos_h, ...
+                                   S.var_gps_pos_v, ...
+                                   S.var_gps_vel_h, S.var_gps_vel_h, ...
+                                   S.var_gps_vel_v]);
             obj.par.R_baro = S.var_baro;
             obj.par.R_mag  = S.var_mag * eye(3);
-            obj.par.R_mag_heading = S.var_mag_heading;
         end
 
         %% ── predict ──────────────────────────────────────────────────────
@@ -156,6 +155,33 @@ classdef ESEKF < handle
             y = z_n - m_pred;
             obj.measurement_update(H, y, obj.par.R_mag);
         end
+
+%% ── update_zupt ─────────────────────────────────────────────────
+        function update_zupt(obj)
+            % 1. 정지 상태이므로 관측된 참 속도는 0
+            z_vel = [0; 0; 0];
+            
+            % 2. 예측된 속도
+            v_pred = obj.nom.v;
+            
+            % 3. 속도 관측 오차 (Innovation: z - 예측값)
+            y = z_vel - v_pred;
+            
+            % 4. 관측 행렬 (H) 생성
+            % ESEKF 상태 벡터가 [dp, dv, dth, dba, dbg] 순서인 15차원일 때,
+            % 속도 오차(dv)는 4번째부터 6번째 인덱스에 위치합니다.
+            H = zeros(3, 15);
+            H(1:3, 4:6) = eye(3);
+            
+            % 5. ZUPT 전용 노이즈 공분산 (R)
+            % "지금 절대적으로 멈춰있다"는 것을 필터가 강하게 믿도록
+            % GPS 속도 노이즈보다 훨씬 작은 값(예: 1e-4)을 부여합니다.
+            R_zupt = eye(3) * 1e-4; 
+            
+            % 6. 공통 측정 업데이트 함수 호출
+            obj.measurement_update(H, y, R_zupt);
+        end
+
     end % methods
 
     %% ── 내부 공통 함수 ──────────────────────────────────────────────────

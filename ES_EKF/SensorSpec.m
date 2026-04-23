@@ -13,24 +13,22 @@ classdef SensorSpec
         % IMU (LSM6DSO32) — 노이즈 cut off: 가속도 41.6 Hz , gyro 135.9 Hz
         %검색 결과 일반적인 필터에서는 cut off를 신경안씀 -> 추후 튜닝함
         
-        var_acc   (1,1) double =  (220 / 1e6 * 9.81)^2 % (m/s²)²·s  가속도 노이즈 밀도² (PSD)
-        var_gyro  (1,1) double =   (3.8/1000 *pi/180)^2  % (rad/s)²·s  자이로 노이즈 밀도² (PSD)
+        var_acc   (1,1) double =  2.729445e-4 % (m/s²)²·s  가속도 노이즈 밀도² (PSD)
+        var_gyro  (1,1) double =   8.061781e-7  % (rad/s)²·s  자이로 노이즈 밀도² (PSD)
         var_ba    (1,1) double = (0.001)^2              % (m/s²)²·s  가속도 바이어스 랜덤워크 PSD
         var_bg    (1,1) double = (0.0001)^2             % (rad/s)²·s  자이로 바이어스 랜덤워크 PSD
 
-        % GPS (NEO-M9N) — 1σ 정확도
-        sigma_gps_pos_h (1,1) double = 1.5   % [m] 수평 위치 (CEP 1.5m)
-        sigma_gps_pos_v (1,1) double = 3.0   % [m] 수직 위치 (수평 × 2)
-        sigma_gps_vel_h (1,1) double = 0.05  % [m/s] 수평 속도
-        sigma_gps_vel_v (1,1) double = 0.1   % [m/s] 수직 속도
+        % GPS (NEO-M9N) — 분산 (σ²)
+        var_gps_pos_h (1,1) double = 0.694^2       % [m²] 수평 위치 (CEP 1.5m)
+        var_gps_pos_v (1,1) double = 1.282927^2    % [m²] 수직 위치 (수평 × 2)
+        var_gps_vel_h (1,1) double = 0.2684742^2   % [(m/s)²] 수평 속도
+        var_gps_vel_v (1,1) double = 0.2684742^2   % [(m/s)²] 수직 속도
 
         % 기압 고도계 (BMP388) — 기압 RMS 2.3 Pa → 고도 노이즈 0.191 m
-        var_baro  (1,1) double = 0.191^2     % [m]
+        var_baro  (1,1) double = 4.920342e-2     % [m]
 
         % 지자기 (MMC5983MA) — 단위벡터 기준 노이즈
-        var_mag     (1,1) double = 0.0008^2 %0.02^2  % [-] (0.04µT RMS / 지구자기장 ~50µT)^2 =0.0008²
-        % Heading-only 업데이트용 분산 (전기적 노이즈 + 캘리브레이션 잔차 + 환경 간섭)
-        var_mag_heading (1,1) double = (3 * pi/180)^2  % [rad²] ≈ 3° 1σ
+        var_mag     (1,1) double = (1.963/500)^2 %0.02^2  % [-] (0.04µT RMS / 지구자기장 ~50µT)^2 =0.0008²
 
         % 물리 상수
         g_ned       (3,1) double = [0; 0; 9.81]    % 중력벡터 NED [m/s²]
