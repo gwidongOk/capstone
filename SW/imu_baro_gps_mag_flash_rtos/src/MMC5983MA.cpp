@@ -232,15 +232,18 @@ bool MMC5983MA::readCalibratedMag(float &mx, float &my, float &mz) {
     float sx, sy, sz;
     readMag(sx, sy, sz);
 
-    // Hard-iron + soft-iron (sensor frame)
+    // 1. Hard-iron + soft-iron calibration (in sensor frame)
     sx = (sx - _bias[0]) * _scale[0];
     sy = (sy - _bias[1]) * _scale[1];
     sz = (sz - _bias[2]) * _scale[2];
 
-    // Body-frame remap (edit if MAG is mounted differently from body frame)
-    mx = sx;
-    my = sy;
-    mz = sz;
+    // 2. Align to Rocket Body-Axis (align_axis logic)
+    // Body X = Sensor X (Nosecone)
+    // Body Y = -Sensor Y (Sensor Y was Left, make it Right)
+    // Body Z = -Sensor Z (Sensor Z was Up, make it Down for RHR)
+    mx =  sx;
+    my = -sy;
+    mz = -sz;
     return true;
 }
 

@@ -90,13 +90,25 @@ void LSM6DSO32::readCalibratedIMU(int16_t &gx, int16_t &gy, int16_t &gz,
     int16_t rgx, rgy, rgz, rax, ray, raz;
     readRawIMU(rgx, rgy, rgz, rax, ray, raz);
 
-    // Subtract bias in RAW axis (bias stored pre-remap)
+    // 1. Subtract bias in RAW sensor axis (captured at horizontal rest)
     rgx -= _bias_gx; rgy -= _bias_gy; rgz -= _bias_gz;
     rax -= _bias_ax; ray -= _bias_ay; raz -= _bias_az;
 
-    // Body-frame remap: x = sensor_y, y = sensor_x, z = -sensor_z
-    gx =  rgy; gy =  rgx; gz = -rgz;
-    ax =  ray; ay =  rax; az = -raz;
+    // 2. Align to Rocket Body-Axis (align_axis logic)
+    // Body X = Sensor Y (Nosecone)
+    // Body Y = Sensor X (Right)
+    // Body Z = -Sensor Z (Down, Right-hand rule)
+    gx =  rgy; 
+    gy =  rgx; 
+    gz = -rgz;
+
+    // 3. Add 1g to Body X-axis as requested (LSB for +/-32g is ~0.976mg)
+    // 1g in LSB = 1000mg / 0.976mg/LSB = 1024.59...
+    const int16_t G_LSB = 1025; 
+
+    ax =  ray + G_LSB; // Body X (Nosecone)
+    ay =  rax;         // Body Y (Right)
+    az = -raz;         // Body Z (Down)
 }
 
 uint8_t LSM6DSO32::readRegister(uint8_t reg) {

@@ -6,6 +6,9 @@
 #include <Preferences.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+#include <freertos/queue.h>
+
+#include "sensor_data.h"
 
 class MX25Logger {
   public:
@@ -50,6 +53,23 @@ class MX25Logger {
     uint32_t getStartAddress() { return START_ADDRESS; }
     uint32_t getCurrentAddress() { return _currentFlashAddress; }
 
+    // ============================================================
+    // Typed log entry points — packet layout lives in MX25Logger.cpp.
+    // To change the on-flash format, edit only the corresponding body.
+    // ============================================================
+    void logImu  (const Raw_imu       &raw);
+    void logBaro (const Raw_press     &p);
+    void logMag  (const Raw_mag       &m);
+    void logGps  (const Raw_gps       &g);
+    void logState(const State_nominal &nom);
+
+    // Drain in-RAM queue → flash (called from FlushTask)
+    void serviceFlush();
+
+    // Logging gate
+    void setEnabled(bool e) { _enabled = e; }
+    bool isEnabled() const  { return _enabled; }
+
   private:
     SPIClass *_spi;
     int _csPin;
@@ -63,6 +83,17 @@ class MX25Logger {
     Preferences _prefs;
 
     const uint32_t START_ADDRESS = 0x0000000;
+
+    // ---- Typed log queue (in-RAM staging from sensor tasks → FlushTask) ----
+    static const uint8_t  ITEM_MAX_SIZE = 80;   // largest packet (state_pkt = 71 B)
+    static const uint16_t QUEUE_LENGTH  = 128;
+    struct Item {
+      uint8_t data[ITEM_MAX_SIZE];
+      uint8_t len;
+    };
+    QueueHandle_t _queue;
+    volatile bool _enabled;
+    void _push(const void *pkt, uint8_t len);
 
     // NVS에 기록 종료 주소를 저장/복원
     void saveAddress();

@@ -19,9 +19,14 @@ MX25Logger::MX25Logger() {
   _bufferIndex = 0;
   _currentFlashAddress = 0x0000000;
   _bufferMutex = xSemaphoreCreateMutex();
+  _queue = NULL;
+  _enabled = false;
 }
 
 bool MX25Logger::begin(SPIClass *spi, int sck, int miso, int mosi, int cs) {
+  _queue = xQueueCreate(QUEUE_LENGTH, sizeof(Item));
+  if (!_queue) return false;
+
   _spi = spi;
   _csPin = cs;
   _bufferIndex = 0;
@@ -227,4 +232,94 @@ void MX25Logger::waitUntilDone() {
 
 void MX25Logger::enter4ByteMode() {
   digitalWrite(_csPin, LOW); _spi->transfer(CMD_EN4B); digitalWrite(_csPin, HIGH);
+}
+
+// ============================================================
+// Typed log methods — packet layout is local to this file.
+// To change the on-flash format, edit only the body below.
+// (Existing appendRaw path is reused so parsing stays compatible.)
+// ============================================================
+void MX25Logger::logImu(const Raw_imu &raw) {
+  imu_pkt pkt;
+  pkt.header.SYNC_BYTE = 0xAA;
+  pkt.header.id        = ID_IMU;
+  pkt.header.len       = sizeof(pkt);
+  pkt.t  = raw.timestamp;
+  pkt.gx = raw.gx; pkt.gy = raw.gy; pkt.gz = raw.gz;
+  pkt.ax = raw.ax; pkt.ay = raw.ay; pkt.az = raw.az;
+  _push(&pkt, sizeof(pkt));
+}
+
+void MX25Logger::logBaro(const Raw_press &p) {
+  baro_pkt pkt;
+  pkt.header.SYNC_BYTE = 0xAA;
+  pkt.header.id        = ID_BARO;
+  pkt.header.len       = sizeof(pkt);
+  pkt.t   = p.timestamp;
+  pkt.alt = p.alt;
+  _push(&pkt, sizeof(pkt));
+}
+
+void MX25Logger::logMag(const Raw_mag &m) {
+  mag_pkt pkt;
+  pkt.header.SYNC_BYTE = 0xAA;
+  pkt.header.id        = ID_MAG;
+  pkt.header.len       = sizeof(pkt);
+  pkt.t  = m.timestamp;
+  pkt.mx = m.mx; pkt.my = m.my; pkt.mz = m.mz;
+  _push(&pkt, sizeof(pkt));
+}
+
+void MX25Logger::logGps(const Raw_gps &g) {
+  gps_pkt pkt;
+  pkt.header.SYNC_BYTE = 0xAA;
+  pkt.header.id        = ID_GPS;
+  pkt.header.len       = sizeof(pkt);
+  pkt.t  = g.timestamp;
+  pkt.pn = g.pn; pkt.pe = g.pe; pkt.pd = g.pd;
+  pkt.vn = g.vn; pkt.ve = g.ve; pkt.vd = g.vd;
+  pkt.hAcc = g.hAcc; pkt.vAcc = g.vAcc;
+  pkt.fixType = g.fixType;
+  pkt.numSV   = g.numSV;
+  _push(&pkt, sizeof(pkt));
+}
+
+void MX25Logger::logState(const State_nominal &nom) {
+  state_pkt pkt;
+  pkt.header.SYNC_BYTE = 0xAA;
+  pkt.header.id        = ID_STATE;
+  pkt.header.len       = sizeof(pkt);
+  pkt.t = nom.timestamp;
+  memcpy(pkt.p,  nom.p,  sizeof(nom.p));
+  memcpy(pkt.v,  nom.v,  sizeof(nom.v));
+  memcpy(pkt.q,  nom.q,  sizeof(nom.q));
+  memcpy(pkt.ba, nom.ba, sizeof(nom.ba));
+  memcpy(pkt.bg, nom.bg, sizeof(nom.bg));
+  _push(&pkt, sizeof(pkt));
+}
+
+
+// ============================================================
+// Queue → flash drain (FlushTask body)
+// ============================================================
+void MX25Logger::serviceFlush() {
+  Item item;
+  if (xQueueReceive(_queue, &item, pdMS_TO_TICKS(10)) == pdTRUE) {
+    appendRaw(item.data, item.len);
+  }
+  if (hasFullPage()) {
+    flushPages();
+  }
+}
+
+// ============================================================
+// Internal: queue push (gated by isEnabled)
+// ============================================================
+void MX25Logger::_push(const void *pkt, uint8_t len) {
+  if (!_enabled) return;
+  if (len > ITEM_MAX_SIZE) return;
+  Item item;
+  item.len = len;
+  memcpy(item.data, pkt, len);
+  xQueueSend(_queue, &item, 0);
 }

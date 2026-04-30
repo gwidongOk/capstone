@@ -19,6 +19,7 @@ struct PacketHeader {
   uint8_t id;
   uint8_t len;
 };
+
 // ID 1 : Barometer altitude
 struct baro_pkt {
   PacketHeader header;
@@ -30,59 +31,37 @@ struct baro_pkt {
 struct imu_pkt {
   PacketHeader header;
   uint32_t t;
-  int16_t gx;
-  int16_t gy;
-  int16_t gz;
-  int16_t ax;
-  int16_t ay;
-  int16_t az;
+  int16_t gx, gy, gz;
+  int16_t ax, ay, az;
 };
 
 // ID 3 : Magnetometer
 struct mag_pkt {
   PacketHeader header;
   uint32_t t;
-  float mx;
-  float my;
-  float mz;
+  float mx, my, mz;
 };
 
 // ID 4 : GPS NED
 struct gps_pkt {
   PacketHeader header;
   uint32_t t;
-  float pn;
-  float pe;
-  float pd;
-  float vn;
-  float ve;
-  float vd;
-  float hAcc;
-  float vAcc;
+  float pn, pe, pd;
+  float vn, ve, vd;
+  float hAcc, vAcc;
   uint8_t fixType;
   uint8_t numSV;
 };
 
-// ID 5 : ES-EKF nominal state
+// ID 5 : ES-EKF nominal state (Flattened for Python header_parser.py)
 struct state_pkt {
   PacketHeader header;
   uint32_t t;
-  float pn;
-  float pe;
-  float pd;
-  float vn;
-  float ve;
-  float vd;
-  float qw;
-  float qx;
-  float qy;
-  float qz;
-  float ba_x;
-  float ba_y;
-  float ba_z;
-  float bg_x;
-  float bg_y;
-  float bg_z;
+  float pn, pe, pd;
+  float vn, ve, vd;
+  float qw, qx, qy, qz;
+  float ba_x, ba_y, ba_z;
+  float bg_x, bg_y, bg_z;
 };
 
 #pragma pack(pop)

@@ -1,17 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <Arduino.h>
-#include <SPI.h>
-#include <Wire.h>
-#include "LSM6DSO32.h"
-#include "BMP388.h"
-#include "MMC5983MA.h"
-#include "NEOM9N.h"
-#include "NAV.h"
-#include "MX25Logger.h"
-#include "sensor_data.h"
-
 // ============================================================
 // Hardware pins (2026 ALTIS AVIONICS V1.1)
 // ============================================================
@@ -39,53 +28,52 @@
 #define GPS_RX_PIN   2
 #define GPS_TX_PIN   1
 
-// ============================================================
-// RTOS events (NAV task wakes on these)
-// ============================================================
-#define EVENT_IMU_UPDATE  (1 << 0)
-#define EVENT_BMP_UPDATE  (1 << 1)
-#define EVENT_MAG_UPDATE  (1 << 2)
-#define EVENT_GPS_UPDATE  (1 << 3)
+//BUZZER and user LED
+#define BUZZER_PIN   17
+#define LED_PIN   48
+
+//SERVO
+#define SERVO_1_PIN   41
+#define SERVO_2_PIN   40
+#define SERVO_3_PIN   39
+#define SERVO_4_PIN   38
+
+//Pyro
+#define PYRO_1_PIN   18
+#define PYRO_2_PIN   8
+
+//BUZZER and user LED
+#define BUZZER_PIN   17
+#define LED_PIN   48
 
 // ============================================================
-// Log queue: holds one packet per item, flushed to flash by FlushTask (core 0)
-// Flash write stays page-based (256 B pages from MX25Logger._dataBuffer).
+// Communication Settings
 // ============================================================
-#define LOG_ITEM_MAX_SIZE 80       // fits largest packet (state_pkt = 71 B)
-#define LOG_QUEUE_LENGTH  128      // safety headroom (128 × 81 B ≈ 10 KB RAM)
-
-struct LogItem {
-  uint8_t data[LOG_ITEM_MAX_SIZE];
-  uint8_t len;
-};
+#define SERIAL_BAUD       921600
+#define BLE_DEVICE_NAME   "2026ALTIS"
 
 // ============================================================
-// Global objects (defined in main.cpp)
+// RTOS Task Settings (Priority: 5 is highest)
 // ============================================================
-extern SPIClass sensorSPI;
-extern SPIClass flashSPI;
 
-extern LSM6DSO32 imu;
-extern BMP388    bmp;
-extern MMC5983MA mag;
-extern NEOM9N    gps;
-extern NAV       nav;
-extern MX25Logger logger;
+// Core 1: Sensor acquisition & Navigation (Dedicated)
+#define TASK_C1_PRIO_IMU     5
+#define TASK_C1_PRIO_BMP     4
+#define TASK_C1_PRIO_MAG     4
+#define TASK_C1_PRIO_GPS     3
 
-extern TaskHandle_t TaskHandle_IMU;
-extern TaskHandle_t TaskHandle_BMP;
-extern TaskHandle_t TaskHandle_MAG;
-extern TaskHandle_t TaskHandle_GPS;
-extern TaskHandle_t TaskHandle_NAV;
-extern TaskHandle_t FlushTaskHandle;
+// Core 0: Communication & System tasks (Flash Writing)
+#define TASK_C0_PRIO_FLUSH   3
 
-extern SemaphoreHandle_t spiMutex;
-extern SemaphoreHandle_t i2cMutex;
-extern SemaphoreHandle_t dataMutex;
-extern SemaphoreHandle_t flashMutex;
-extern QueueHandle_t     logQueue;
+#define STACK_SIZE_SENSOR    8192
+#define STACK_SIZE_FLUSH     4096
 
-extern volatile bool isLogging;
-extern volatile bool systemStarted;
+// ============================================================
+// Sensor & Logic Parameters
+// ============================================================
+#define MAG_POLL_MS       2
+#define GPS_POLL_MS       10
+#define CALIB_SAMPLES     100
+#define MAG_CALIB_MS      30000
 
 #endif

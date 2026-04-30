@@ -114,6 +114,7 @@ String getIncomingRaw() {
 // 응답 전송 (Serial + BLE Notify)
 // ============================================================
 void sendResponse(const char *msg) {
+  Serial.print(msg); // 시리얼 모니터 출력 추가
   if (pTxChar) {
     pTxChar->setValue((const uint8_t *)msg, strlen(msg));
     pTxChar->notify();
