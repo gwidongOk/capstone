@@ -31,7 +31,6 @@ static TaskHandle_t TaskHandle_BMP  = NULL;
 static TaskHandle_t TaskHandle_MAG  = NULL;
 static TaskHandle_t TaskHandle_GPS  = NULL;
 static TaskHandle_t FlushTaskHandle = NULL;
-static TaskHandle_t BuzzerTaskHandle= NULL;
 
 static SemaphoreHandle_t spiMutex   = NULL;
 static SemaphoreHandle_t i2cMutex   = NULL;
@@ -40,19 +39,14 @@ static SemaphoreHandle_t flashMutex = NULL;
 
 static volatile bool flightActive = false;
 
-// Simple Buzzer State
-static volatile int bOnMs = 0;
-static volatile int bOffMs = 0;
-
 // Forward Declarations
 void IMU_Task(void *pvParameters);
 void BMP_Task(void *pvParameters);
 void MAG_Task(void *pvParameters);
 void GPS_Task(void *pvParameters);
 void FlushTask(void *pvParameters);
-void Buzzer_Task(void *pvParameters);
-
-void setBeep(int on, int off);
+void beep(int ms);
+void errorBeep();
 void clearSensors();
 void attachSensorInterrupts();
 void detachSensorInterrupts();
@@ -63,51 +57,56 @@ void detachSensorInterrupts();
 void setup() {
   Serial.begin(SERIAL_BAUD);
 
+  // 1. Pins & Feedback
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(LED_PIN,    OUTPUT);
   pinMode(PYRO_1_PIN, OUTPUT); pinMode(PYRO_2_PIN, OUTPUT);
   pinMode(SERVO_1_PIN, OUTPUT); pinMode(SERVO_2_PIN, OUTPUT);
   pinMode(SERVO_3_PIN, OUTPUT); pinMode(SERVO_4_PIN, OUTPUT);
+  
   digitalWrite(BUZZER_PIN, LOW);
   digitalWrite(LED_PIN,    LOW);
+  digitalWrite(PYRO_1_PIN, LOW); digitalWrite(PYRO_2_PIN, LOW);
 
+  // 2. Synchronizations
   spiMutex   = xSemaphoreCreateMutex();
   i2cMutex   = xSemaphoreCreateMutex();
   navMutex   = xSemaphoreCreateMutex();
   flashMutex = xSemaphoreCreateMutex();
-  
-  // Background Buzzer
-  xTaskCreatePinnedToCore(Buzzer_Task, "Buzzer_T", 2048, NULL, 1, &BuzzerTaskHandle, 0);
-
   if (!spiMutex || !i2cMutex || !navMutex || !flashMutex) {
-    setBeep(500, 200); // Error Pattern
+    errorBeep();
     while (1);
   }
 
+  // 3. Communications
   initBLE(BLE_DEVICE_NAME);
   sensorSPI.begin(SPI_SCK_PIN, SPI_MISO_PIN, SPI_MOSI_PIN);
   Wire.begin(MAG_SDA_PIN, MAG_SCL_PIN, 400000);
 
+  // 4. Sensors
   bool ok = true;
   if (!imu.begin()) { sendResponse("IMU FAIL\n"); ok = false; }
   if (!bmp.begin()) { sendResponse("BMP FAIL\n"); ok = false; }
   if (!mag.begin()) { sendResponse("MAG FAIL\n"); ok = false; }
-  if (!gps.begin(10)) { sendResponse("GPS WARN\n"); }
+  if (!gps.begin(10)) { sendResponse("GPS WARN\n"); } // Non-fatal
   
-  if (!ok) { setBeep(500, 200); while(1); }
+  if (!ok) { errorBeep(); while(1); }
   sendResponse("ALL SENSORS OK\n");
 
+  // 5. Storage
   logger.begin(&flashSPI, FLASH_SCK_PIN, FLASH_MISO_PIN, FLASH_MOSI_PIN, FLASH_CS_PIN);
+
   pinMode(IMU_INT1_PIN, INPUT_PULLDOWN);
   pinMode(BMP_INT_PIN,  INPUT);
 
+  // 6. Tasks
   xTaskCreatePinnedToCore(IMU_Task, "IMU_T",  STACK_SIZE_SENSOR, NULL, TASK_C1_PRIO_IMU, &TaskHandle_IMU, 1);
   xTaskCreatePinnedToCore(BMP_Task, "BMP_T",  STACK_SIZE_SENSOR, NULL, TASK_C1_PRIO_BMP, &TaskHandle_BMP, 1);
   xTaskCreatePinnedToCore(MAG_Task, "MAG_T",  STACK_SIZE_SENSOR, NULL, TASK_C1_PRIO_MAG, &TaskHandle_MAG, 1);
   xTaskCreatePinnedToCore(GPS_Task, "GPS_T",  STACK_SIZE_SENSOR, NULL, TASK_C1_PRIO_GPS, &TaskHandle_GPS, 1);
   xTaskCreatePinnedToCore(FlushTask,"Flush_T",STACK_SIZE_FLUSH,  NULL, TASK_C0_PRIO_FLUSH, &FlushTaskHandle, 0);
 
-  setBeep(50, 2000); // Success/Ready Pattern
+  beep(200);
   sendResponse(">>> READY\n");
 }
 
@@ -119,10 +118,9 @@ void loop() {
   if (cmd.length() == 0) { vTaskDelay(pdMS_TO_TICKS(50)); return; }
   cmd.toUpperCase();
 
-  // 1. Always Available Commands
+  // --- Common Commands ---
   if (cmd == "REBOOT") {
     sendResponse("REBOOTING...\n");
-    setBeep(100, 0);
     if (logger.isEnabled()) {
       logger.setEnabled(false);
       detachSensorInterrupts();
@@ -135,55 +133,35 @@ void loop() {
     vTaskDelay(pdMS_TO_TICKS(200));
     ESP.restart();
   }
-  else if (cmd == "PARSE") {
-    bool wasLogging = logger.isEnabled();
-    if (wasLogging) {
-      logger.setEnabled(false);
-      detachSensorInterrupts();
-      vTaskDelay(pdMS_TO_TICKS(100));
-    }
-    if (xSemaphoreTake(flashMutex, portMAX_DELAY) == pdTRUE) {
-      sendResponse("DUMP START\n");
-      logger.forceFlushBuffer();
-      logger.dumpRawBinary(Serial);
-      sendResponse("DUMP DONE\n");
-      xSemaphoreGive(flashMutex);
-    }
-    if (wasLogging) { flightActive = false; digitalWrite(LED_PIN, LOW); setBeep(50, 2000); }
-  }
 
-  // 2. State-Dependent Commands
+  // --- Pre-Flight Commands ---
   else if (!flightActive) {
     if (cmd == "CALIBRATE") {
-      setBeep(100, 100);
       digitalWrite(LED_PIN, HIGH);
       sendResponse("CALIBRATING IMU+BMP...\n");
       imu.calibrate(CALIB_SAMPLES);
       bmp.calibrate(CALIB_SAMPLES);
       clearSensors();
       sendResponse("DONE.\n");
-      digitalWrite(LED_PIN, LOW); 
-      setBeep(50, 2000);
+      digitalWrite(LED_PIN, LOW); beep(100);
     }
     else if (cmd == "CALIBRATE_MAG") {
-      setBeep(100, 100);
       digitalWrite(LED_PIN, HIGH);
-      sendResponse("CALIBRATING MAG...\n");
+      sendResponse("CALIBRATING MAG (30S)...\n");
       mag.calibrate(MAG_CALIB_MS);
       mag.clearInterruptFlag();
       sendResponse("DONE.\n");
-      digitalWrite(LED_PIN, LOW);
-      setBeep(50, 2000);
+      digitalWrite(LED_PIN, LOW); beep(100);
     }
     else if (cmd == "CALIBRATE_GPS") {
-      if (gps.calibrate()) { sendResponse("GPS ORIGIN OK\n"); setBeep(50, 2000); }
-      else { sendResponse("GPS ORIGIN FAIL\n"); setBeep(500, 200); }
+      if (gps.calibrate()) { sendResponse("GPS ORIGIN OK\n"); beep(100); }
+      else { sendResponse("GPS ORIGIN FAIL\n"); }
     }
     else if (cmd == "ERASE") {
       sendResponse("ERASING FLASH...\n");
       logger.eraseAll();
       sendResponse("DONE.\n");
-      setBeep(50, 2000);
+      beep(500);
     }
     else if (cmd == "START") {
       sendResponse("STARTING...\n");
@@ -193,13 +171,15 @@ void loop() {
       flightActive = true;
       attachSensorInterrupts();
       imu.enableAccelDataReadyInterrupt(1);
-      clearSensors();
+      clearSensors(); // Final clear after INT attached
       digitalWrite(LED_PIN, HIGH);
-      setBeep(200, 100);
+      beep(300);
       sendResponse("FLIGHT ACTIVE\n");
     }
   }
-  else { // flightActive is true
+
+  // --- Flight/Active Commands ---
+  else {
     if (cmd == "STOP") {
       if (logger.isEnabled()) {
         logger.setEnabled(false);
@@ -211,33 +191,55 @@ void loop() {
         }
         flightActive = false;
         digitalWrite(LED_PIN, LOW);
-        setBeep(50, 2000);
+        beep(200); vTaskDelay(pdMS_TO_TICKS(50)); beep(200);
         sendResponse("STOPPED.\n");
       }
     }
+    else if (cmd == "PARSE") {
+      bool wasLogging = logger.isEnabled();
+      if (wasLogging) {
+        logger.setEnabled(false);
+        detachSensorInterrupts();
+        vTaskDelay(pdMS_TO_TICKS(100));
+      }
+      if (xSemaphoreTake(flashMutex, portMAX_DELAY) == pdTRUE) {
+        sendResponse("DUMP START\n");
+        logger.forceFlushBuffer();
+        logger.dumpRawBinary(Serial);
+        sendResponse("DUMP DONE\n");
+        xSemaphoreGive(flashMutex);
+      }
+      if (wasLogging) { flightActive = false; digitalWrite(LED_PIN, LOW); }
+    }
   }
+
   vTaskDelay(pdMS_TO_TICKS(50));
 }
 
 // ============================================================
-// Tasks
+// Sensor & Utility Tasks (Core 1)
 // ============================================================
 void IMU_Task(void *pvParameters) {
-  Raw_imu raw; static int64_t lastImuTime_us = 0;
+  Raw_imu raw;
+  static int64_t lastImuTime_us = 0;
   for (;;) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     if (!flightActive) continue;
+
     if (xSemaphoreTake(spiMutex, portMAX_DELAY) == pdTRUE) {
       raw.timestamp = (uint32_t)(esp_timer_get_time() & 0xFFFFFFFF);
       imu.readCalibratedIMU(raw.gx, raw.gy, raw.gz, raw.ax, raw.ay, raw.az);
       xSemaphoreGive(spiMutex);
     }
     logger.logImu(raw);
+
     int64_t now_us = esp_timer_get_time();
     float dt = (lastImuTime_us > 0) ? (float)(now_us - lastImuTime_us) * 1e-6f : 0.0f;
     lastImuTime_us = now_us;
+
     if (xSemaphoreTake(navMutex, portMAX_DELAY) == pdTRUE) {
-      nav.updateIMU(raw); nav.ekfPredict(dt);
+      nav.updateIMU(raw);
+      nav.ekfPredict(dt);
       logger.logState(nav.getNominal());
       xSemaphoreGive(navMutex);
     }
@@ -249,14 +251,17 @@ void BMP_Task(void *pvParameters) {
   for (;;) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     if (!flightActive) continue;
+
     if (xSemaphoreTake(spiMutex, portMAX_DELAY) == pdTRUE) {
       p.timestamp = (uint32_t)(esp_timer_get_time() & 0xFFFFFFFF);
       bmp.readAltitude(p.alt);
       xSemaphoreGive(spiMutex);
     }
     logger.logBaro(p);
+
     if (xSemaphoreTake(navMutex, portMAX_DELAY) == pdTRUE) {
-      nav.updatePress(p); nav.ekfUpdateBaro();
+      nav.updatePress(p);
+      nav.ekfUpdateBaro();
       xSemaphoreGive(navMutex);
     }
   }
@@ -302,38 +307,23 @@ void GPS_Task(void *pvParameters) {
   }
 }
 
-void FlushTask(void *pvParameters) { for (;;) { logger.serviceFlush(); } }
-
-// ============================================================
-// Simple Non-blocking Buzzer
-// ============================================================
-void setBeep(int on, int off) {
-  bOnMs = on;
-  bOffMs = off;
-}
-
-void Buzzer_Task(void *pvParameters) {
-  for (;;) {
-    if (bOnMs > 0) {
-      digitalWrite(BUZZER_PIN, HIGH);
-      vTaskDelay(pdMS_TO_TICKS(bOnMs));
-      digitalWrite(BUZZER_PIN, LOW);
-      
-      if (bOffMs > 0) {
-        vTaskDelay(pdMS_TO_TICKS(bOffMs));
-      } else {
-        // bOffMs가 0이면 1회성 비프로 간주하고 정지
-        bOnMs = 0;
-      }
-    } else {
-      vTaskDelay(pdMS_TO_TICKS(100));
-    }
-  }
+void FlushTask(void *pvParameters) {
+  for (;;) { logger.serviceFlush(); }
 }
 
 // ============================================================
 // Utilities
 // ============================================================
+void beep(int ms) {
+  digitalWrite(BUZZER_PIN, HIGH);
+  vTaskDelay(pdMS_TO_TICKS(ms));
+  digitalWrite(BUZZER_PIN, LOW);
+}
+
+void errorBeep() {
+  for(int i=0; i<3; i++) { beep(100); vTaskDelay(pdMS_TO_TICKS(100)); }
+}
+
 void clearSensors() {
   int16_t d1, d2, d3, d4, d5, d6; float df;
   imu.readRawIMU(d1, d2, d3, d4, d5, d6);
