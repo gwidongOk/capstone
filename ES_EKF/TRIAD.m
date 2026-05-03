@@ -1,45 +1,68 @@
-function q_init = TRIAD_Initial_Alignment(acc, mag)
-    % TRIAD_Initial_Alignment: 가속도와 지자기 데이터를 이용한 초기 자세(쿼터니언) 계산
-    % 
-    % [Input]
-    % acc : 가속도계 측정값 [ax; ay; az] (로켓 코 방향이 +9.81인 상태)
-    % mag : 지자기 센서 측정값 [mx; my; mz]
-    %
-    % [Output]
-    % q_init : 초기 쿼터니언 [qw; qx; qy; qz]
+function q = TRIAD(acc, mag, lat, lon)
+    acc = acc(:);
+    mag = mag(:);
+    
+    %% 1. NED 기준벡터 (진북 기준)
+    r1 = [0; 0; 1];                            % Down (gravity 방향)
 
-    %% 1. 기준 벡터 정의 (NED 좌표계 기준)
-    S  = SensorSpec;
-    r1 = [0; 0; 1];          % Reference 1: Down (중력 방향)
-    r2 = S.m_ref_ned;        % Reference 2: 지자기 기준벡터 (편각 포함)
+    if nargin >= 4 && ~isempty(lat) && ~isempty(lon)
+        % GPS lat/lon으로 WMM-Korea 선형근사 → 단위벡터 m_ref
+        [D_deg, I_deg] = wmm_korea(lat, lon);
+        cD = cosd(D_deg); sD = sind(D_deg);
+        cI = cosd(I_deg); sI = sind(I_deg);
+        r2 = [cI*cD; cI*sD; sI];
+    else
+        % SensorSpec 디폴트 (서울 기준)
+        S  = SensorSpec;
+        r2 = S.m_ref_ned / norm(S.m_ref_ned);
+    end
 
-    %% 2. 관측 벡터 정의 및 부호 교정 (Body 좌표계 기준)
-    % 사용자님의 센서 특성: 코(Body X)가 하늘을 향할 때 +9.81이 측정됨.
-    % NED 기준인 r1(Down)과 맞추기 위해 가속도 벡터에 마이너스를 붙여 b1을 생성.
-    b1 = -acc / norm(acc); % 측정된 'Up'을 'Down'으로 변환
-    b2 = mag / norm(mag);  % 지자기 벡터 정규화
+    %% 2. body 관측벡터
+    %  정지 상태: acc_body = R_n2b * (-g_ned)  →  -acc 방향 = Down을 body에서 본 것
+    b1 = -acc / norm(acc);                     % Down (in body)
+    b2 =  mag / norm(mag);                     % 지자기 (in body)
 
-    %% 3. TRIAD 중간 좌표계(Triad Frame) 생성
-    % NED 좌표계에서의 Triad Frame (M_ref = C_t_n)
+    %  평행성 검사 (Korea: r1·r2 ≈ 0.78~0.82, 안전)
+    if abs(dot(b1, b2)) > 0.999
+        warning('TRIAD: 측정 acc/mag 벡터가 거의 평행 — 자세 추정 불안정.');
+    end
+
+    %% 3. 직교 triad 구성
+    % NED frame
     u1 = r1;
-    u2 = cross(u1, r2) / norm(cross(u1, r2)); % East 방향 축
-    u3 = cross(u1, u2);                       % South 방향 축
+    u2 = cross(u1, r2) / norm(cross(u1, r2));
+    u3 = cross(u1, u2);
     M_ref = [u1, u2, u3];
 
-    % Body 좌표계에서의 Triad Frame (M_body = C_t_b)
+    % body frame
     v1 = b1;
     v2 = cross(v1, b2) / norm(cross(v1, b2));
     v3 = cross(v1, v2);
     M_body = [v1, v2, v3];
 
-    %% 4. 최종 변환 행렬(DCM) 및 쿼터니언 도출
-    % 연쇄 법칙: C_b_n = C_t_n * (C_t_b)'
+    %% 4. R_b2n = M_ref * M_body'   →  쿼터니언
+    %  유도: M_body = R_n2b * M_ref  ⇒  R_n2b = M_body * M_ref'
+    %        R_b2n = R_n2b' = M_ref * M_body'
     C_bn = M_ref * M_body';
+    q    = NavUtils.dcm2quat(C_bn);            % [4x1] column
+end
 
-    % DCM을 쿼터니언으로 변환 (Aerospace Toolbox 함수 사용)
-    % 만약 Toolbox가 없다면 직접 수식으로 변환하는 로직이 필요합니다.
-    q_init = NavUtils.dcm2quat(C_bn)'; 
-    
-    % 쿼터니언 정규화 (수치적 안정성 확보)
-    q_init = q_init / norm(q_init);
+
+%% ─────────────────────────────────────────────────────────────────
+function [D, I] = wmm_korea(lat, lon)
+%WMM_KOREA  한국 영역 자기 편각/복각 선형 근사 (WMM-2025 기준, 2026년)
+%
+%   유효 범위: 33°N ~ 39°N, 125°E ~ 131°E
+%   정확도   : Declination ±0.3°,  Inclination ±0.5°
+%
+%   Center : (36°N, 127°E)에서 D = -7.9°, I = 51.0°
+%   기울기 : ∂D/∂lat ≈ -0.35,  ∂D/∂lon ≈ +0.15
+%            ∂I/∂lat ≈ +1.4,   ∂I/∂lon ≈ +0.05
+
+    if lat < 32 || lat > 40 || lon < 124 || lon > 132
+        warning('TRIAD/wmm_korea: 위/경도 (%.2f, %.2f)가 한국 영역 밖 — 정확도 저하 가능', lat, lon);
+    end
+
+    D = -7.9 - 0.35*(lat - 36) + 0.15*(lon - 127);   % declination [deg]
+    I = 51.0 + 1.40*(lat - 36) + 0.05*(lon - 127);   % inclination [deg]
 end

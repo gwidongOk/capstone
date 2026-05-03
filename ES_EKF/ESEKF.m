@@ -3,22 +3,26 @@ classdef ESEKF < handle
 %
 % 프로퍼티:
 %   nom   NominalState  — 명목 상태 (p, v, q, b_a, b_g)
-%   par   FilterParams  — 필터 행렬 (P, Q, R_gps, R_baro, R_mag)
+%   par   FilterParams  — 필터 행렬 (P, Q, R_gps, R_baro)
 %   g     [3x1]         — 중력벡터 NED [m/s²]
-%   m_ref [3x1]         — 지자기 기준벡터 NED (단위벡터)
 %
 % 사용법:
+%   % 1. 초기 자세 결정 (TRIAD)
+%   q0 = ESEKF.run_triad(acc_init, mag_init, lat, lon);
+%
+%   % 2. 필터 초기화
 %   ekf = ESEKF(p0, v0, q0);
+%
+%   % 3. 예측 및 업데이트
 %   ekf.predict(a_m, w_m, dt);
 %   ekf.update_gps(z_gps);
 %   ekf.update_baro(z_baro);
-%   ekf.update_mag(z_mag);
+%   ekf.update_zupt();
 
     properties
         nom   NominalState     % 명목 상태 x
         par   FilterParams     % 필터 행렬 (P, Q, R)
         g     (3,1) double     % 중력벡터 NED [m/s²]
-        m_ref (3,1) double     % 지자기 기준벡터 NED [3x1]
     end
 
     methods (Access = public)
@@ -38,7 +42,6 @@ classdef ESEKF < handle
             % ── 물리 상수 (SensorSpec 참조) ──────────────────────────
             S = SensorSpec;
             obj.g     = S.g_ned;
-            obj.m_ref = S.m_ref_ned / norm(S.m_ref_ned);
 
             % ── 필터 행렬 ─────────────────────────────────────────────
             obj.par = FilterParams();
@@ -69,7 +72,6 @@ classdef ESEKF < handle
                                    S.var_gps_vel_h, S.var_gps_vel_h, ...
                                    S.var_gps_vel_v]);
             obj.par.R_baro = S.var_baro;
-            obj.par.R_mag  = S.var_mag * eye(3);
         end
 
         %% ── predict ──────────────────────────────────────────────────────
@@ -145,18 +147,8 @@ classdef ESEKF < handle
 
             obj.measurement_update(H, y, obj.par.R_baro);
         end
-        %% ── update_ㅡmag ──────────────────────────────────────────────────        
-        function update_mag(obj, z)
-            z_n = z / norm(z);
-            R_nb = NavUtils.quat2dcm(obj.nom.q);
-            m_pred = R_nb' * obj.m_ref;
-            H = zeros(3,15);
-            H(1:3,7:9) = NavUtils.skew(m_pred);
-            y = z_n - m_pred;
-            obj.measurement_update(H, y, obj.par.R_mag);
-        end
 
-%% ── update_zupt ─────────────────────────────────────────────────
+        %% ── update_zupt ─────────────────────────────────────────────────
         function update_zupt(obj)
             % 1. 정지 상태이므로 관측된 참 속도는 0
             z_vel = [0; 0; 0];
@@ -174,7 +166,6 @@ classdef ESEKF < handle
             H(1:3, 4:6) = eye(3);
             
             % 5. ZUPT 전용 노이즈 공분산 (R)
-            % "지금 절대적으로 멈춰있다"는 것을 필터가 강하게 믿도록
             % GPS 속도 노이즈보다 훨씬 작은 값(예: 1e-4)을 부여합니다.
             R_zupt = eye(3) * 1e-4; 
             
@@ -182,7 +173,56 @@ classdef ESEKF < handle
             obj.measurement_update(H, y, R_zupt);
         end
 
-    end % methods
+    end % methods (Access = public)
+
+    methods (Static)
+        %% ── run_triad ──────────────────────────────────────────────────
+        function q = run_triad(acc, mag, lat, lon)
+        %   TRIAD 알고리즘을 통한 초기 자세 결정
+        %   acc [3x1] 초기 정지 상태 가속도 측정값
+        %   mag [3x1] 초기 지자기 측정값
+        %   lat, lon (선택) 위도/경도 [deg]
+        
+            acc = acc(:);
+            mag = mag(:);
+            
+            % 1. NED 기준벡터
+            r1 = [0; 0; 1]; % Down
+            
+            if nargin >= 4 && ~isempty(lat) && ~isempty(lon)
+                [D_deg, I_deg] = ESEKF.wmm_korea(lat, lon);
+                cD = cosd(D_deg); sD = sind(D_deg);
+                cI = cosd(I_deg); sI = sind(I_deg);
+                r2 = [cI*cD; cI*sD; sI];
+            else
+                S  = SensorSpec;
+                r2 = S.m_ref_ned / norm(S.m_ref_ned);
+            end
+
+            % 2. body 관측벡터
+            b1 = -acc / norm(acc);
+            b2 =  mag / norm(mag);
+
+            if abs(dot(b1, b2)) > 0.999
+                warning('ESEKF.run_triad: 측정 벡터가 거의 평행하여 자세 추정이 불안정할 수 있습니다.');
+            end
+
+            % 3. 직교 triad 구성
+            u1 = r1;
+            u2 = cross(u1, r2) / norm(cross(u1, r2));
+            u3 = cross(u1, u2);
+            M_ref = [u1, u2, u3];
+
+            v1 = b1;
+            v2 = cross(v1, b2) / norm(cross(v1, b2));
+            v3 = cross(v1, v2);
+            M_body = [v1, v2, v3];
+
+            % 4. R_b2n = M_ref * M_body'
+            C_bn = M_ref * M_body';
+            q    = NavUtils.dcm2quat(C_bn);
+        end
+    end
 
     %% ── 내부 공통 함수 ──────────────────────────────────────────────────
     methods (Access = private)
@@ -225,5 +265,16 @@ classdef ESEKF < handle
         end
 
     end % methods (Access = private)
+    
+    methods (Static, Access = private)
+        function [D, I] = wmm_korea(lat, lon)
+        %   한국 영역 자기 편각/복각 선형 근사
+            if lat < 32 || lat > 40 || lon < 124 || lon > 132
+                warning('ESEKF.wmm_korea: 한국 영역 밖 — 정확도 저하 가능');
+            end
+            D = -7.9 - 0.35*(lat - 36) + 0.15*(lon - 127);
+            I = 51.0 + 1.40*(lat - 36) + 0.05*(lon - 127);
+        end
+    end
 
 end % classdef
