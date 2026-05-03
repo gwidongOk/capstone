@@ -173,6 +173,127 @@ classdef ESEKF < handle
             obj.measurement_update(H, y, R_zupt);
         end
 
+        %% ── update_acc_static (Inclinometer Update) ─────────────────────
+        function update_acc_static(obj, a_m)
+            % 정지 상태에서 가속도계가 중력만을 측정해야 함을 이용해 자세와 바이어스 보정
+            % a_m: [3x1] 가속도계 측정값 [m/s²]
+            
+            R_nb = NavUtils.quat2dcm(obj.nom.q);
+            % 예측된 비력: R_nb' * (-g_ned) + b_a
+            z_pred = R_nb' * (-obj.g) + obj.nom.b_a;
+            y = a_m(:) - z_pred;
+            
+            % 야코비안 H
+            % δθ에 대한 미분: R_nb' * skew(g_ned)  또는 skew(R_nb' * -g_ned)
+            % δba에 대한 미분: eye(3)
+            H = zeros(3, 15);
+            H(:, 7:9)   = NavUtils.skew(R_nb' * (-obj.g));
+            H(:, 10:12) = eye(3);
+            
+            % 측정 노이즈 (가속도 분산)
+            S = SensorSpec;
+            R_acc = eye(3) * (S.var_acc / S.dt_imu); 
+            
+            obj.measurement_update(H, y, R_acc);
+        end
+
+        %% ── update_gyro_static (ZARU: Zero Angular Rate Update) ──────────
+        function update_gyro_static(obj, w_m)
+            % 정지 상태에서 자이로 측정값이 0(바이어스 제외)이어야 함을 이용해 바이어스 보정
+            % w_m: [3x1] 자이로 측정값 [rad/s]
+            
+            % 예측된 회전율: b_g
+            z_pred = obj.nom.b_g;
+            y = w_m(:) - z_pred;
+            
+            % 야코비안 H (δbg에 대한 미분: eye(3))
+            H = zeros(3, 15);
+            H(:, 13:15) = eye(3);
+            
+            % 측정 노이즈 (자이로 분산)
+            S = SensorSpec;
+            R_gyro = eye(3) * (S.var_gyro / S.dt_imu);
+            
+            obj.measurement_update(H, y, R_gyro);
+        end
+
+        %% ── update_mag ──────────────────────────────────────────────────
+        function update_mag(obj, z_m)
+            % z_m: [3x1] 정규화된 지자기 측정 벡터 (body frame)
+            %      또는 [3x1] Gauss 단위 측정값 (내부에서 정규화)
+            
+            if norm(z_m) < 1e-4, return; end
+            z_m = z_m(:) / norm(z_m);
+            
+            % 1. 예측된 지자기 벡터 (NED -> Body)
+            R_nb = NavUtils.quat2dcm(obj.nom.q);
+            S = SensorSpec;
+            m_ref = S.m_ref_ned / norm(S.m_ref_ned);
+            z_pred = R_nb' * m_ref;
+            
+            % 2. 혁신 (Innovation)
+            y = z_m - z_pred;
+            
+            % 3. 야코비안 H (자세 오차 [7:9]에 대해서만 존재)
+            H = zeros(3, 15);
+            H(:, 7:9) = NavUtils.skew(z_pred);
+            
+            % 4. 측정 노이즈 (SensorSpec 참조)
+            R_mag = eye(3) * S.var_mag;
+            
+            % 5. 업데이트
+            obj.measurement_update(H, y, R_mag);
+        end
+
+        %% ── run_zupt_alignment (자동 수렴 루프) ──────────────────────────
+        function [t_spent, converged] = run_zupt_alignment(obj, imu_provider, dt, threshold, max_time, mag_provider)
+            arguments
+                obj
+                imu_provider
+                dt (1,1) double
+                threshold (1,1) double = 1e-4
+                max_time (1,1) double = 30.0
+                mag_provider = [] % 선택적 지자기 데이터 공급자
+            end
+
+            t = 0;
+            converged = false;
+            steps_per_update = round(0.1 / dt); % 10Hz 업데이트 주기를 모사
+
+            % 루프 시작
+            while t < max_time
+                % 1. 0.1초 동안 예측(Predict) 수행
+                for i = 1:steps_per_update
+                    [a_m, w_m] = imu_provider();
+                    obj.predict(a_m, w_m, dt);
+                    t = t + dt;
+                end
+                
+                % 2. 정적 업데이트 수행 (P 변화 감지용)
+                P_before = sum(diag(obj.par.P(7:15, 7:15))); % 자세, 바이어스 영역 감시
+                
+                % [필수 업데이트] 속도(0), 가속도(중력), 자이로(0)
+                obj.update_zupt();          % 속도 오차 제거
+                obj.update_acc_static(a_m); % Pitch/Roll 오차 및 가속도 바이어스 제거
+                obj.update_gyro_static(w_m);% 자이로 바이어스 제거
+                
+                % [선택 업데이트] 지자기
+                if ~isempty(mag_provider)
+                    z_m = mag_provider();
+                    obj.update_mag(z_m);    % Yaw(Heading) 오차 제거
+                end
+                
+                P_after = sum(diag(obj.par.P(7:15, 7:15)));
+                
+                % 3. 수렴 판단
+                if P_before > 0 && abs(P_before - P_after) / P_before < threshold
+                    converged = true;
+                    break;
+                end
+            end
+            t_spent = t;
+        end
+
     end % methods (Access = public)
 
     methods (Static)

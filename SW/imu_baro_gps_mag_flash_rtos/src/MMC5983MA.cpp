@@ -157,7 +157,7 @@ void MMC5983MA::readMag(float &mx, float &my, float &mz) {
 
 // ==================== Calibration ====================
 
-void MMC5983MA::calibrate(uint32_t durationMs) {
+bool MMC5983MA::calibrate(uint32_t durationMs) {
     Serial.println();
     Serial.println("=== Magnetometer Calibration ===");
     Serial.printf("Rotate the board in ALL orientations for %lu s (figure-8).\n",
@@ -203,6 +203,16 @@ void MMC5983MA::calibrate(uint32_t durationMs) {
         }
     }
 
+    // 품질 검증: 충분히 회전했는지 확인 (범위가 0.3 Gauss 미만이면 불충분)
+    float spreadX = maxX - minX;
+    float spreadY = maxY - minY;
+    float spreadZ = maxZ - minZ;
+    if (spreadX < 0.3f || spreadY < 0.3f || spreadZ < 0.3f) {
+        Serial.printf("Mag 교정 실패: 회전 부족 (X:%.2f, Y:%.2f, Z:%.2f)\n", spreadX, spreadY, spreadZ);
+        applyDefaults();
+        return false;
+    }
+
     // Hard-iron: midpoint of min/max per axis
     _bias[0] = 0.5f * (maxX + minX);
     _bias[1] = 0.5f * (maxY + minY);
@@ -226,6 +236,7 @@ void MMC5983MA::calibrate(uint32_t durationMs) {
                   _bias[0], _bias[1], _bias[2]);
     Serial.printf("  scale        : %.4f  %.4f  %.4f\n",
                   _scale[0], _scale[1], _scale[2]);
+    return true;
 }
 
 bool MMC5983MA::readCalibratedMag(float &mx, float &my, float &mz) {

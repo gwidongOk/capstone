@@ -43,7 +43,8 @@ public:
                     int16_t &ax, int16_t &ay, int16_t &az);
 
     // Calibrate nSamples at rest; stores int16 RAW bias internally.
-    void calibrate(uint16_t nSamples = 100);
+    // Returns true if samples were stable (low variance).
+    bool calibrate(uint16_t nSamples = 100);
 
     // Read calibrated: axis-aligned(body frame) + int16 bias subtracted.
     // Body-frame mapping: x = sensor_y, y = sensor_x, z = -sensor_z

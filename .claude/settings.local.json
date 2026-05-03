@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(command -v pio)",
+      "Bash(command -v platformio)",
+      "Bash(g++ -std=c++14 -fsyntax-only -Wall -Wno-unused-function -Wno-unused-variable -DM_PI=3.14159265358979323846 -include cstdint -c NavMath.cpp -o /tmp/navmath.o)",
+      "Bash(g++ -std=c++14 -fsyntax-only -Wall -Wno-unused-function -Wno-unused-variable -DM_PI=3.14159265358979323846 -include cstdint -c ESEKF.cpp -o /tmp/esekf.o)",
+      "Bash(mkdir -p /tmp/stubinc)",
+      "Bash(g++ -std=c++14 -fsyntax-only -Wall -Wno-unused-function -Wno-unused-variable -I/tmp/stubinc -c NAV.cpp)"
+    ]
+  }
+}

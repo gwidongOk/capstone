@@ -19,23 +19,28 @@ MX25Logger::MX25Logger() {
   _bufferIndex = 0;
   _currentFlashAddress = 0x0000000;
   _bufferMutex = xSemaphoreCreateMutex();
+  _spiMutex = nullptr;
   _queue = NULL;
   _enabled = false;
 }
 
-bool MX25Logger::begin(SPIClass *spi, int sck, int miso, int mosi, int cs) {
+bool MX25Logger::begin(SPIClass *spi, int sck, int miso, int mosi, int cs, SemaphoreHandle_t spiMutex) {
   _queue = xQueueCreate(QUEUE_LENGTH, sizeof(Item));
   if (!_queue) return false;
 
   _spi = spi;
   _csPin = cs;
+  _spiMutex = spiMutex;
   _bufferIndex = 0;
 
   pinMode(_csPin, OUTPUT);
   digitalWrite(_csPin, HIGH);
+  
+  if (_spiMutex) xSemaphoreTake(_spiMutex, portMAX_DELAY);
   _spi->begin(sck, miso, mosi, _csPin);
-
   enter4ByteMode();
+  if (_spiMutex) xSemaphoreGive(_spiMutex);
+
   vTaskDelay(pdMS_TO_TICKS(10));
 
   // NVS에서 이전 기록 종료 주소 복원
@@ -102,6 +107,8 @@ void MX25Logger::flushPages() {
 }
 
 void MX25Logger::writePage(uint8_t *page) {
+  if (_spiMutex) xSemaphoreTake(_spiMutex, portMAX_DELAY);
+
   if (_currentFlashAddress % 4096 == 0) {
     writeEnable(); eraseSector(_currentFlashAddress); waitUntilDone();
   }
@@ -117,6 +124,8 @@ void MX25Logger::writePage(uint8_t *page) {
   waitUntilDone();
 
   _currentFlashAddress += 256;
+
+  if (_spiMutex) xSemaphoreGive(_spiMutex);
 }
 
 void MX25Logger::forceFlushBuffer() {
@@ -125,7 +134,6 @@ void MX25Logger::forceFlushBuffer() {
   xSemaphoreTake(_bufferMutex, portMAX_DELAY);
   if (_bufferIndex == 0) {
     xSemaphoreGive(_bufferMutex);
-    // 주소 저장 (STOP 시 호출되므로 여기서 영속화)
     saveAddress();
     return;
   }
@@ -135,6 +143,8 @@ void MX25Logger::forceFlushBuffer() {
   memcpy(remaining, _dataBuffer, len);
   _bufferIndex = 0;
   xSemaphoreGive(_bufferMutex);
+
+  if (_spiMutex) xSemaphoreTake(_spiMutex, portMAX_DELAY);
 
   if (_currentFlashAddress % 4096 == 0) {
     writeEnable(); eraseSector(_currentFlashAddress); waitUntilDone();
@@ -151,8 +161,9 @@ void MX25Logger::forceFlushBuffer() {
   waitUntilDone();
 
   _currentFlashAddress += len;
+  
+  if (_spiMutex) xSemaphoreGive(_spiMutex);
 
-  // 주소 NVS에 저장 (리부팅 후에도 복원 가능)
   saveAddress();
 }
 
@@ -181,6 +192,8 @@ void MX25Logger::dumpRawBinary(Stream &out) {
 // 전체 삭제
 // ============================================================
 void MX25Logger::eraseAll() {
+  if (_spiMutex) xSemaphoreTake(_spiMutex, portMAX_DELAY);
+
   writeEnable();
   digitalWrite(_csPin, LOW);
   _spi->transfer(CMD_CHIP_ERASE);
@@ -193,25 +206,30 @@ void MX25Logger::eraseAll() {
   }
   digitalWrite(_csPin, HIGH);
 
+  if (_spiMutex) xSemaphoreGive(_spiMutex);
+
   _currentFlashAddress = START_ADDRESS;
   _bufferIndex = 0;
 
-  // NVS도 리셋
   saveAddress();
 }
 
 // ============================================================
-// 저수준 Flash 명령
+// 저수준 Flash 명령 (내부용, 뮤텍스는 상위에서 잡아야 함)
 // ============================================================
 void MX25Logger::readFlash(uint32_t addr, uint8_t *buf, uint32_t len) {
+  if (_spiMutex) xSemaphoreTake(_spiMutex, portMAX_DELAY);
   digitalWrite(_csPin, LOW); _spi->transfer(CMD_READ);
   _spi->transfer((addr >> 24) & 0xFF); _spi->transfer((addr >> 16) & 0xFF);
   _spi->transfer((addr >> 8) & 0xFF); _spi->transfer(addr & 0xFF);
   for (uint32_t i = 0; i < len; i++) { buf[i] = _spi->transfer(0x00); }
   digitalWrite(_csPin, HIGH);
+  if (_spiMutex) xSemaphoreGive(_spiMutex);
 }
 
 void MX25Logger::eraseSector(uint32_t addr) {
+  // NOTE: 상위 writePage/forceFlush에서 이미 뮤텍스를 잡았거나 잡아야 함.
+  // 여기서는 중복해서 잡지 않음 (필요시 재귀 뮤텍스 사용 가능하나 ESP32 기본은 아님)
   digitalWrite(_csPin, LOW); _spi->transfer(CMD_SECTOR_ERASE);
   _spi->transfer((addr >> 24) & 0xFF); _spi->transfer((addr >> 16) & 0xFF);
   _spi->transfer((addr >> 8) & 0xFF); _spi->transfer(addr & 0xFF);
@@ -235,9 +253,7 @@ void MX25Logger::enter4ByteMode() {
 }
 
 // ============================================================
-// Typed log methods — packet layout is local to this file.
-// To change the on-flash format, edit only the body below.
-// (Existing appendRaw path is reused so parsing stays compatible.)
+// Typed log methods
 // ============================================================
 void MX25Logger::logImu(const Raw_imu &raw) {
   imu_pkt pkt;
@@ -298,10 +314,17 @@ void MX25Logger::logState(const State_nominal &nom) {
   _push(&pkt, sizeof(pkt));
 }
 
+void MX25Logger::logEvent(FlightPhase phase, uint8_t eventId) {
+  event_pkt pkt;
+  pkt.header.SYNC_BYTE = 0xAA;
+  pkt.header.id        = ID_EVENT;
+  pkt.header.len       = sizeof(pkt);
+  pkt.t = (uint32_t)(esp_timer_get_time() & 0xFFFFFFFF);
+  pkt.phase    = (uint8_t)phase;
+  pkt.event_id = eventId;
+  _push(&pkt, sizeof(pkt));
+}
 
-// ============================================================
-// Queue → flash drain (FlushTask body)
-// ============================================================
 void MX25Logger::serviceFlush() {
   Item item;
   if (xQueueReceive(_queue, &item, pdMS_TO_TICKS(10)) == pdTRUE) {
@@ -312,9 +335,6 @@ void MX25Logger::serviceFlush() {
   }
 }
 
-// ============================================================
-// Internal: queue push (gated by isEnabled)
-// ============================================================
 void MX25Logger::_push(const void *pkt, uint8_t len) {
   if (!_enabled) return;
   if (len > ITEM_MAX_SIZE) return;

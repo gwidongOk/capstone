@@ -42,10 +42,6 @@
 #define PYRO_1_PIN   18
 #define PYRO_2_PIN   8
 
-//BUZZER and user LED
-#define BUZZER_PIN   17
-#define LED_PIN   48
-
 // ============================================================
 // Communication Settings
 // ============================================================
@@ -56,14 +52,15 @@
 // RTOS Task Settings (Priority: 5 is highest)
 // ============================================================
 
-// Core 1: Sensor acquisition & Navigation (Dedicated)
+// Core 1: High-speed Real-time Control (Dedicated)
 #define TASK_C1_PRIO_IMU     5
-#define TASK_C1_PRIO_BMP     4
-#define TASK_C1_PRIO_MAG     4
-#define TASK_C1_PRIO_GPS     3
+// (Future: TASK_C1_PRIO_CTRL 5)
 
-// Core 0: Communication & System tasks (Flash Writing)
-#define TASK_C0_PRIO_FLUSH   3
+// Core 0: Auxiliary sensors & System tasks
+#define TASK_C0_PRIO_BMP     4
+#define TASK_C0_PRIO_MAG     4
+#define TASK_C0_PRIO_GPS     3
+#define TASK_C0_PRIO_FLUSH   2  // Logging is lower than sensor reading
 
 #define STACK_SIZE_SENSOR    8192
 #define STACK_SIZE_FLUSH     4096

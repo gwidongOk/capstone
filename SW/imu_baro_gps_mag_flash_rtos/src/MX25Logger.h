@@ -14,7 +14,7 @@ class MX25Logger {
   public:
     MX25Logger();
 
-    bool begin(SPIClass *spi, int sck, int miso, int mosi, int cs);
+    bool begin(SPIClass *spi, int sck, int miso, int mosi, int cs, SemaphoreHandle_t spiMutex = NULL);
     void eraseAll();
 
     // 버퍼에 데이터를 추가만 합니다 (플래시 쓰기 없음, 뮤텍스 보호)
@@ -62,6 +62,7 @@ class MX25Logger {
     void logMag  (const Raw_mag       &m);
     void logGps  (const Raw_gps       &g);
     void logState(const State_nominal &nom);
+    void logEvent(FlightPhase phase, uint8_t eventId); // New: Flight event logging
 
     // Drain in-RAM queue → flash (called from FlushTask)
     void serviceFlush();
@@ -73,6 +74,7 @@ class MX25Logger {
   private:
     SPIClass *_spi;
     int _csPin;
+    SemaphoreHandle_t _spiMutex;
     uint32_t _currentFlashAddress;
 
     static const uint16_t BUFFER_SIZE = 2048;

@@ -91,24 +91,51 @@ bool NEOM9N::calibrate(float maxHAcc_m) {
         Serial.println("[GPS] calibrate: no 3D fix");
         return false;
     }
-    float hAcc_m = _pvt.hAcc * 1e-3f;
-    if (hAcc_m > maxHAcc_m) {
-        Serial.printf("[GPS] calibrate: hAcc too high (%.2f m)\n", hAcc_m);
-        return false;
+
+    const int nSamples = 20;
+    double latSum = 0, lonSum = 0, altSum = 0;
+    double latStart = _pvt.lat * 1e-7, lonStart = _pvt.lon * 1e-7;
+    int collected = 0;
+
+    Serial.println("[GPS] Averaging origin position...");
+    uint32_t t0 = millis();
+    while (collected < nSamples && millis() - t0 < 10000) {
+        if (update()) {
+            // 안정성 체크 1: 현재 속도가 너무 빠르면 (드리프트가 심하면) 실패
+            float speed = _pvt.gSpeed * 0.001f;
+            if (speed > 0.5f) {
+                Serial.printf("[GPS] Calib fail: moving too fast (%.2f m/s)\n", speed);
+                return false;
+            }
+
+            // 안정성 체크 2: 처음 지점으로부터 너무 멀어지면 실패
+            double latNow = _pvt.lat * 1e-7;
+            double lonNow = _pvt.lon * 1e-7;
+            double dLat = (latNow - latStart) * DEG2RAD * R_EARTH;
+            double dLon = (lonNow - lonStart) * DEG2RAD * R_EARTH * cos(latStart * DEG2RAD);
+            if (sqrt(dLat*dLat + dLon*dLon) > 5.0) {
+                Serial.println("[GPS] Calib fail: position drifting too much");
+                return false;
+            }
+
+            latSum += latNow;
+            lonSum += lonNow;
+            altSum += _pvt.alt * 1e-3;
+            collected++;
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 
-    double lat_deg = _pvt.lat * 1e-7;
-    double lon_deg = _pvt.lon * 1e-7;
-    double alt_m   = _pvt.alt * 1e-3;
+    if (collected < nSamples) return false;
 
-    _origin_lat_rad = lat_deg * DEG2RAD;
-    _origin_lon_rad = lon_deg * DEG2RAD;
-    _origin_alt_m   = alt_m;
+    _origin_lat_rad = (latSum / collected) * DEG2RAD;
+    _origin_lon_rad = (lonSum / collected) * DEG2RAD;
+    _origin_alt_m   = (altSum / collected);
     _cos_origin_lat = cos(_origin_lat_rad);
     _origin_set = true;
 
-    Serial.printf("[GPS] Origin set: lat=%.7f lon=%.7f alt=%.2f m (hAcc=%.2f)\n",
-                  lat_deg, lon_deg, alt_m, hAcc_m);
+    Serial.printf("[GPS] Origin set (Avg): lat=%.7f lon=%.7f alt=%.2f m\n",
+                  _origin_lat_rad/DEG2RAD, _origin_lon_rad/DEG2RAD, _origin_alt_m);
     return true;
 }
 

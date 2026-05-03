@@ -73,22 +73,36 @@ bool BMP388::readData(float &pressure) {
     return true;
 }
 
-void BMP388::calibrate(uint16_t nSamples) {
+bool BMP388::calibrate(uint16_t nSamples) {
     // Discard warm-up samples
-    for (uint16_t i = 0; i < 50; i++) {
-        float d;
-        readData(d);
+    for (uint16_t i = 0; i < 20; i++) {
+        float d; readData(d);
         vTaskDelay(pdMS_TO_TICKS(20));
     }
 
-    float sum = 0.0f;
+    double sum = 0.0;
+    double sq_sum = 0.0;
     for (uint16_t i = 0; i < nSamples; i++) {
         float p;
-        readData(p);
-        sum += p;
+        if (readData(p)) {
+            sum += p;
+            sq_sum += (double)p * p;
+        }
         vTaskDelay(pdMS_TO_TICKS(20));
     }
-    _pad_p = sum / (float)nSamples;
+    
+    _pad_p = (float)(sum / (double)nSamples);
+    
+    // 분산 확인 (Pa 단위)
+    double var = (sq_sum / nSamples) - ((double)_pad_p * _pad_p);
+    
+    // 기압 안정성 확인: 표준편차가 10Pa(약 0.8m) 이상이면 불안정한 것으로 간주
+    if (var > 100.0) { // 10^2
+        Serial.printf("Baro 교정 실패: 압력 불안정 (Var: %.1f Pa)\n", var);
+        return false;
+    }
+
+    return true;
 }
 
 bool BMP388::readAltitude(float &alt) {

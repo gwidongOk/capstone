@@ -44,7 +44,8 @@ public:
     bool readData(float &pressure);
 
     // Average pressure at rest, store as _pad_p (called at launch pad)
-    void calibrate(uint16_t nSamples = 100);
+    // Returns true if samples were stable.
+    bool calibrate(uint16_t nSamples = 100);
 
     // Altitude above pad (m), using stored _pad_p
     bool readAltitude(float &alt);

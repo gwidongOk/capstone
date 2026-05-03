@@ -133,7 +133,8 @@ public:
     // ===== Calibration =====
     // Blocking ~durationMs. User rotates board in figure-8 covering all orientations.
     // Stores hard-iron bias and soft-iron scale internally (in Gauss).
-    void calibrate(uint32_t durationMs = 30000);
+    // Returns true if coverage was sufficient.
+    bool calibrate(uint32_t durationMs = 30000);
 
     // Read fully calibrated Gauss (hard+soft iron + body-frame axis).
     // Body-frame axis: pass-through (edit if MAG is mounted rotated).

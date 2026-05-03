@@ -43,24 +43,47 @@ bool LSM6DSO32::begin() {
     return true;
 }
 
-void LSM6DSO32::calibrate(uint16_t nSamples) {
+bool LSM6DSO32::calibrate(uint16_t nSamples) {
     int32_t sum_gx = 0, sum_gy = 0, sum_gz = 0;
     int32_t sum_ax = 0, sum_ay = 0, sum_az = 0;
+    
+    double sq_sum_gx = 0, sq_sum_ax = 0;
 
     for (uint16_t i = 0; i < nSamples; i++) {
         int16_t gx, gy, gz, ax, ay, az;
         readRawIMU(gx, gy, gz, ax, ay, az);
+        
         sum_gx += gx; sum_gy += gy; sum_gz += gz;
         sum_ax += ax; sum_ay += ay; sum_az += az;
-        vTaskDelay(pdMS_TO_TICKS(3));   // 416Hz = 2.4ms, 3ms 여유
+        
+        sq_sum_gx += (double)gx * gx;
+        sq_sum_ax += (double)ax * ax;
+        
+        vTaskDelay(pdMS_TO_TICKS(3));
     }
 
     _bias_gx = (int16_t)(sum_gx / (int32_t)nSamples);
     _bias_gy = (int16_t)(sum_gy / (int32_t)nSamples);
     _bias_gz = (int16_t)(sum_gz / (int32_t)nSamples);
+    
+    // 캘리브레이션 시 보드가 수평(Sensor Z가 하늘 방향)이라고 가정
+    // 가속도계는 중력의 반대 방향(수직 항력)인 +1g를 측정함.
+    // ±32g 설정에서 1g = 1025 LSB (0.976mg/LSB)
+    const int16_t G_LSB = 1025;
+
     _bias_ax = (int16_t)(sum_ax / (int32_t)nSamples);
     _bias_ay = (int16_t)(sum_ay / (int32_t)nSamples);
-    _bias_az = (int16_t)(sum_az / (int32_t)nSamples);
+    _bias_az = (int16_t)((sum_az / (int32_t)nSamples) - G_LSB); // Zero-g 바이어스 추출
+
+    double var_gx = (sq_sum_gx / nSamples) - ((double)_bias_gx * _bias_gx);
+    double var_ax = (sq_sum_ax / nSamples) - ((double)_bias_ax * _bias_ax);
+    
+    if (var_gx > 400.0 || var_ax > 2500.0) {
+        Serial.printf("IMU 교정 실패: 노이즈 과다 (G_Var:%.1f, A_Var:%.1f)\n", var_gx, var_ax);
+        return false;
+    }
+
+    return true;
 }
 
 void LSM6DSO32::enableAccelDataReadyInterrupt(uint8_t intPin) {
@@ -90,25 +113,26 @@ void LSM6DSO32::readCalibratedIMU(int16_t &gx, int16_t &gy, int16_t &gz,
     int16_t rgx, rgy, rgz, rax, ray, raz;
     readRawIMU(rgx, rgy, rgz, rax, ray, raz);
 
-    // 1. Subtract bias in RAW sensor axis (captured at horizontal rest)
+    // 1. Zero-g 바이어스 제거 (순수 센서 좌표계)
     rgx -= _bias_gx; rgy -= _bias_gy; rgz -= _bias_gz;
     rax -= _bias_ax; ray -= _bias_ay; raz -= _bias_az;
 
-    // 2. Align to Rocket Body-Axis (align_axis logic)
-    // Body X = Sensor Y (Nosecone)
-    // Body Y = Sensor X (Right)
-    // Body Z = -Sensor Z (Down, Right-hand rule)
+    // 2. 로켓 기체 좌표계(Body Frame)로 정렬
+    // Body X = Sensor Y (Nosecone 방향)
+    // Body Y = Sensor X (Right 방향)
+    // Body Z = -Sensor Z (Down 방향)
+    
+    // 자이로 변환
     gx =  rgy; 
     gy =  rgx; 
     gz = -rgz;
 
-    // 3. Add 1g to Body X-axis as requested (LSB for +/-32g is ~0.976mg)
-    // 1g in LSB = 1000mg / 0.976mg/LSB = 1024.59...
-    const int16_t G_LSB = 1025; 
-
-    ax =  ray + G_LSB; // Body X (Nosecone)
-    ay =  rax;         // Body Y (Right)
-    az = -raz;         // Body Z (Down)
+    // 가속도 변환
+    // 정지 상태(Stand-up): Body X(Nosecone)가 하늘을 향하면 ray가 +1g가 되어 ax = +1g가 됨.
+    // 정지 상태(Horizontal): Body Z(Down)가 땅을 향하면 raz가 -1g(Sensor Z=Up이므로)가 되어 az = +1g가 됨.
+    ax =  ray; 
+    ay =  rax; 
+    az = -raz;
 }
 
 uint8_t LSM6DSO32::readRegister(uint8_t reg) {
