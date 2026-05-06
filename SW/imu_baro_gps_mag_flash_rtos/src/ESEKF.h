@@ -39,7 +39,7 @@ public:
 
     // ===== Filter Cycle ================================================
     void predict(const float a_m[3], const float w_m[3], float dt);
-    void updateGps(float pn, float pe, float pd, float vn, float ve, float vd, float hAcc, float vAcc, float accel_mag);
+    void updateGps(float pn, float pe, float pd, float vn, float ve, float vd, float hAcc, float vAcc);
     void updateBaro(float altitude_m);
     void updateMag(const float m_body[3]);
     void updateZupt();
@@ -60,9 +60,11 @@ public:
     const float* gyroBias()   const { return _bg.data(); }
     const float* covariance() const { return _covP.data();  }
 
+    // 자세(δθ) + 바이어스(δba, δbg) 9개 대각 성분 합 — ZUPT 수렴 판정용
+    float attBiasCovTrace() const { return _covP.diagonal().segment<9>(6).sum(); }
+
     // ===== [NavMath 통합] 수학 유틸리티 (Static) =======================
     static void quat2euler(const float q[4], float rpy[3]);
-    static void euler2quat(const float rpy[3], float q[4]);
     static Eigen::Matrix3f skew(const Eigen::Vector3f& v);
 
 private:
@@ -84,6 +86,9 @@ private:
 
     Eigen::Vector3f _g_ned;
     Eigen::Vector3f _m_ref_ned;
+
+    // 최근 predict의 bias 보정된 specific force 크기 [m/s²] — high-G GPS 페널티용
+    float _last_accel_mag;
 
     // Internal Helpers
     void measurementUpdate(const Eigen::MatrixXf& H, const Eigen::VectorXf& y, const Eigen::MatrixXf& R);

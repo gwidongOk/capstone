@@ -23,6 +23,7 @@ classdef ESEKF < handle
         nom   NominalState     % 명목 상태 x
         par   FilterParams     % 필터 행렬 (P, Q, R)
         g     (3,1) double     % 중력벡터 NED [m/s²]
+        last_accel_mag (1,1) double = 0  % 최근 predict의 bias 보정된 specific force 크기 [m/s²]
     end
 
     methods (Access = public)
@@ -83,6 +84,9 @@ classdef ESEKF < handle
             a_hat = a_m - obj.nom.b_a;
             w_hat = w_m - obj.nom.b_g;
 
+            % bias 보정된 specific force 크기 저장 (GPS high-G 페널티에서 사용)
+            obj.last_accel_mag = norm(a_hat);
+
             % 명목 상태 전파
             R_nb  = NavUtils.quat2dcm(obj.nom.q);
             a_ned = R_nb * a_hat + obj.g;
@@ -126,14 +130,46 @@ classdef ESEKF < handle
         end
 
         %% ── update_gps ───────────────────────────────────────────────────
-        function update_gps(obj, z)
-        %   z [6x1] = [pN;pE;pD;vN;vE;vD]
+        function update_gps(obj, z, hAcc, vAcc)
+        %   z         [6x1] = [pN;pE;pD;vN;vE;vD]
+        %   hAcc      [scalar] (선택) GPS 수평 정확도 [m]
+        %   vAcc      [scalar] (선택) GPS 수직 정확도 [m]
+        %   hAcc/vAcc 미지정 시 정적 R_gps 사용 (기존 동작 유지)
+        %   가속도 크기는 obj.last_accel_mag (predict에서 갱신) 사용 — 4g 초과 시 GPS 신뢰도 감쇠
+
             H = zeros(6,15);
             H(1:3,1:3) = eye(3);
             H(4:6,4:6) = eye(3);
 
             y = z - [obj.nom.p; obj.nom.v];
-            obj.measurement_update(H, y, obj.par.R_gps);
+
+            if nargin >= 4 && ~isempty(hAcc) && ~isempty(vAcc)
+                % 1. 기본 오차 가중치 (3배)
+                multiplier = 3.0;
+
+                % 2. 가속도 기반 동적 스케일링 (4g 한계 대응)
+                G4_LIMIT = 4.0 * 9.80665;
+                high_g_penalty = 1.0;
+                if obj.last_accel_mag > G4_LIMIT
+                    excess = obj.last_accel_mag - G4_LIMIT;
+                    high_g_penalty = 1.0 + (excess * excess * 10.0);
+                    if high_g_penalty > 1000.0
+                        high_g_penalty = 1000.0;
+                    end
+                end
+
+                final_multiplier = multiplier * high_g_penalty;
+                var_h  = (hAcc * final_multiplier)^2;
+                var_v  = (vAcc * final_multiplier)^2;
+                var_vh = var_h * 0.2;
+                var_vv = var_v * 0.2;
+
+                R = diag([var_h, var_h, var_v, var_vh, var_vh, var_vv]);
+            else
+                R = obj.par.R_gps;
+            end
+
+            obj.measurement_update(H, y, R);
         end
 
         %% ── update_baro ──────────────────────────────────────────────────

@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld>
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr>
+        <a:xfrm>
+          <a:off x="0" y="0"/>
+          <a:ext cx="0" cy="0"/>
+          <a:chOff x="0" y="0"/>
+          <a:chExt cx="0" cy="0"/>
+        </a:xfrm>
+      </p:grpSpPr>
+
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="3" name="제목 2"/>
+          <p:cNvSpPr>
+            <a:spLocks noGrp="1"/>
+          </p:cNvSpPr>
+          <p:nvPr>
+            <p:ph type="title"/>
+          </p:nvPr>
+        </p:nvSpPr>
+        <p:spPr/>
+        <p:txBody>
+          <a:bodyPr/>
+          <a:lstStyle/>
+          <a:p>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" b="1" dirty="0">
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>Monte Carlo 검증 (N = 50)</a:t>
+            </a:r>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+
+      <p:pic>
+        <p:nvPicPr>
+          <p:cNvPr id="5" name="ComparisonPlot"/>
+          <p:cNvPicPr>
+            <a:picLocks noChangeAspect="1"/>
+          </p:cNvPicPr>
+          <p:nvPr/>
+        </p:nvPicPr>
+        <p:blipFill>
+          <a:blip r:embed="rId3"/>
+          <a:stretch>
+            <a:fillRect/>
+          </a:stretch>
+        </p:blipFill>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="200000" y="1300000"/>
+            <a:ext cx="5500000" cy="3709000"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+        </p:spPr>
+      </p:pic>
+
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="200" name="ResultPanelHeader"/>
+          <p:cNvSpPr txBox="1"/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="5800000" y="1300000"/>
+            <a:ext cx="3144000" cy="450000"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:solidFill>
+            <a:srgbClr val="0F62A6"/>
+          </a:solidFill>
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square" lIns="120000" tIns="50000" rIns="120000" bIns="50000" anchor="ctr"/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr algn="l"><a:buNone/></a:pPr>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1500" b="1" dirty="0">
+                <a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>마지막 5초 평균 성능</a:t>
+            </a:r>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="201" name="ResultTable"/>
+          <p:cNvSpPr txBox="1"/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="5800000" y="1750000"/>
+            <a:ext cx="3144000" cy="2500000"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:solidFill>
+            <a:srgbClr val="F1F5F9"/>
+          </a:solidFill>
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square" lIns="120000" tIns="120000" rIns="120000" bIns="120000" anchor="t"/>
+          <a:lstStyle/>
+
+          <a:p>
+            <a:pPr marL="0" indent="0"><a:buNone/></a:pPr>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1100" dirty="0">
+                <a:solidFill><a:srgbClr val="475569"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>WITHOUT  →  WITH</a:t>
+            </a:r>
+          </a:p>
+
+          <a:p>
+            <a:pPr marL="0" indent="0">
+              <a:spcBef><a:spcPts val="600"/></a:spcBef>
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1300" b="1" dirty="0">
+                <a:solidFill><a:srgbClr val="0F172A"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>자세 오차</a:t>
+            </a:r>
+          </a:p>
+          <a:p>
+            <a:pPr marL="0" indent="0"><a:buNone/></a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1300" dirty="0">
+                <a:solidFill><a:srgbClr val="1E293B"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t xml:space="preserve">0.55°  →  </a:t>
+            </a:r>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1300" b="1" dirty="0">
+                <a:solidFill><a:srgbClr val="166534"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>0.25°  (2.2x↓)</a:t>
+            </a:r>
+          </a:p>
+
+          <a:p>
+            <a:pPr marL="0" indent="0">
+              <a:spcBef><a:spcPts val="500"/></a:spcBef>
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1300" b="1" dirty="0">
+                <a:solidFill><a:srgbClr val="0F172A"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>가속도 바이어스</a:t>
+            </a:r>
+          </a:p>
+          <a:p>
+            <a:pPr marL="0" indent="0"><a:buNone/></a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1300" dirty="0">
+                <a:solidFill><a:srgbClr val="1E293B"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t xml:space="preserve">0.030  →  </a:t>
+            </a:r>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1300" b="1" dirty="0">
+                <a:solidFill><a:srgbClr val="166534"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>0.010 m/s² (3x↓)</a:t>
+            </a:r>
+          </a:p>
+
+          <a:p>
+            <a:pPr marL="0" indent="0">
+              <a:spcBef><a:spcPts val="500"/></a:spcBef>
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1300" b="1" dirty="0">
+                <a:solidFill><a:srgbClr val="0F172A"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>자이로 바이어스</a:t>
+            </a:r>
+          </a:p>
+          <a:p>
+            <a:pPr marL="0" indent="0"><a:buNone/></a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1300" dirty="0">
+                <a:solidFill><a:srgbClr val="1E293B"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t xml:space="preserve">0.05  →  </a:t>
+            </a:r>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1300" b="1" dirty="0">
+                <a:solidFill><a:srgbClr val="166534"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>0.025 deg/s (2x↓)</a:t>
+            </a:r>
+          </a:p>
+
+          <a:p>
+            <a:pPr marL="0" indent="0">
+              <a:spcBef><a:spcPts val="500"/></a:spcBef>
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1300" b="1" dirty="0">
+                <a:solidFill><a:srgbClr val="0F172A"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t xml:space="preserve">NEES </a:t>
+            </a:r>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1100" dirty="0">
+                <a:solidFill><a:srgbClr val="475569"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>(이상값 = 6)</a:t>
+            </a:r>
+          </a:p>
+          <a:p>
+            <a:pPr marL="0" indent="0"><a:buNone/></a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1300" dirty="0">
+                <a:solidFill><a:srgbClr val="1E293B"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t xml:space="preserve">7~8  →  </a:t>
+            </a:r>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1300" b="1" dirty="0">
+                <a:solidFill><a:srgbClr val="166534"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>6.5 (일관성 확보)</a:t>
+            </a:r>
+          </a:p>
+
+        </p:txBody>
+      </p:sp>
+
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="202" name="ConclusionBox"/>
+          <p:cNvSpPr txBox="1"/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="200000" y="5180000"/>
+            <a:ext cx="8744000" cy="1450000"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:solidFill>
+            <a:srgbClr val="0F172A"/>
+          </a:solidFill>
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square" lIns="200000" tIns="120000" rIns="200000" bIns="120000" anchor="t"/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr marL="0" indent="0"><a:buNone/></a:pPr>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1400" b="1" dirty="0">
+                <a:solidFill><a:srgbClr val="FCD34D"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>핵심 결론</a:t>
+            </a:r>
+          </a:p>
+          <a:p>
+            <a:pPr marL="200000" indent="-200000">
+              <a:spcBef><a:spcPts val="300"/></a:spcBef>
+              <a:buFont typeface="Arial"/>
+              <a:buChar char="•"/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1300" dirty="0">
+                <a:solidFill><a:srgbClr val="E2E8F0"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>비행 중 관측 불가능한 IMU 바이어스를 발사 전에 사전 제거 → 자세·속도 추정 일관성 보장</a:t>
+            </a:r>
+          </a:p>
+          <a:p>
+            <a:pPr marL="200000" indent="-200000">
+              <a:spcBef><a:spcPts val="300"/></a:spcBef>
+              <a:buFont typeface="Arial"/>
+              <a:buChar char="•"/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1300" dirty="0">
+                <a:solidFill><a:srgbClr val="E2E8F0"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>비행 0~10초 transient에서 자세 오차 최대 3.4° 발산 → 0.2° 안정 (canard 명령 정밀도 직결)</a:t>
+            </a:r>
+          </a:p>
+          <a:p>
+            <a:pPr marL="200000" indent="-200000">
+              <a:spcBef><a:spcPts val="300"/></a:spcBef>
+              <a:buFont typeface="Arial"/>
+              <a:buChar char="•"/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1300" dirty="0">
+                <a:solidFill><a:srgbClr val="E2E8F0"/></a:solidFill>
+                <a:latin typeface="맑은 고딕"/>
+                <a:ea typeface="맑은 고딕"/>
+              </a:rPr>
+              <a:t>운용 비용 거의 없음 (발사대 정지 시간 &lt; 30 s 활용)</a:t>
+            </a:r>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+
+    </p:spTree>
+    <p:extLst>
+      <p:ext uri="{BB962C8B-B14F-4D97-AF65-F5344CB8AC3E}">
+        <p14:creationId xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main" val="2417866953"/>
+      </p:ext>
+    </p:extLst>
+  </p:cSld>
+  <p:clrMapOvr>
+    <a:masterClrMapping/>
+  </p:clrMapOvr>
+</p:sld>

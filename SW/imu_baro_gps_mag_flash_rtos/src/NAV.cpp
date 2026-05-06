@@ -43,15 +43,12 @@ void NAV::updateMag(const Raw_mag &m) {
     ekfUpdateMag();
 }
 
-void NAV::updateGps(const Raw_gps &g) { 
-    _gps = g; 
+void NAV::updateGps(const Raw_gps &g) {
+    _gps = g;
     if (_ekf_ready && _gps.hasPos) {
-        float ax = _state_imu.ax, ay = _state_imu.ay, az = _state_imu.az;
-        float amag = sqrtf(ax*ax + ay*ay + az*az);
-        
         _ekf.updateGps(_gps.pn, _gps.pe, _gps.pd,
                        _gps.vn, _gps.ve, _gps.vd,
-                       _gps.hAcc, _gps.vAcc, amag);
+                       _gps.hAcc, _gps.vAcc);
         syncNominal();
     }
 }
@@ -164,11 +161,8 @@ void NAV::ekfUpdateStaticAlignment() {
 
 void NAV::ekfUpdateGps() {
     if (!_ekf_ready || !_gps.hasPos) return;
-    float ax = _state_imu.ax, ay = _state_imu.ay, az = _state_imu.az;
-    float amag = sqrtf(ax*ax + ay*ay + az*az);
-    
     _ekf.updateGps(_gps.pn, _gps.pe, _gps.pd,
                    _gps.vn, _gps.ve, _gps.vd,
-                   _gps.hAcc, _gps.vAcc, amag);
+                   _gps.hAcc, _gps.vAcc);
     syncNominal();
 }

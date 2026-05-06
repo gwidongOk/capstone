@@ -6,7 +6,13 @@
       "Bash(g++ -std=c++14 -fsyntax-only -Wall -Wno-unused-function -Wno-unused-variable -DM_PI=3.14159265358979323846 -include cstdint -c NavMath.cpp -o /tmp/navmath.o)",
       "Bash(g++ -std=c++14 -fsyntax-only -Wall -Wno-unused-function -Wno-unused-variable -DM_PI=3.14159265358979323846 -include cstdint -c ESEKF.cpp -o /tmp/esekf.o)",
       "Bash(mkdir -p /tmp/stubinc)",
-      "Bash(g++ -std=c++14 -fsyntax-only -Wall -Wno-unused-function -Wno-unused-variable -I/tmp/stubinc -c NAV.cpp)"
+      "Bash(g++ -std=c++14 -fsyntax-only -Wall -Wno-unused-function -Wno-unused-variable -I/tmp/stubinc -c NAV.cpp)",
+      "Bash(python C:/Users/pc/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/329c9632-574b-4139-8569-1b3173256897/e256aa72-de23-499d-a425-ce9612b288db/skills/pptx/scripts/thumbnail.py original.pptx)",
+      "Bash(python C:/Users/pc/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/329c9632-574b-4139-8569-1b3173256897/e256aa72-de23-499d-a425-ce9612b288db/skills/pptx/scripts/office/unpack.py original.pptx unpacked/)",
+      "Bash(python -c \"from pptx import Presentation; p = Presentation\\('/c/Users/pc/Documents/capstone/capstone/_pptx_work/original.pptx'\\); print\\('OK', len\\(p.slides\\)\\)\")",
+      "Bash(python C:/Users/pc/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/329c9632-574b-4139-8569-1b3173256897/e256aa72-de23-499d-a425-ce9612b288db/skills/pptx/scripts/clean.py unpacked/)",
+      "Bash(python C:/Users/pc/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/329c9632-574b-4139-8569-1b3173256897/e256aa72-de23-499d-a425-ce9612b288db/skills/pptx/scripts/office/pack.py unpacked/ output.pptx --original original.pptx)",
+      "PowerShell($ppt = New-Object -ComObject PowerPoint.Application -ErrorAction SilentlyContinue; if \\($ppt\\) { Write-Output \"PowerPoint COM available\"; $ppt.Quit\\(\\) } else { Write-Output \"No PowerPoint COM\" })"
     ]
   }
 }

@@ -63,14 +63,16 @@ void MX25Logger::loadAddress() {
   _currentFlashAddress = _prefs.getUInt(NVS_KEY_ADDR, START_ADDRESS);
   _prefs.end();
 
-  // 유효성 검증: START_ADDRESS 미만이면 리셋
-  if (_currentFlashAddress < START_ADDRESS) {
+  // 유효성 검증: 범위 밖이면 리셋 (NVS 손상 또는 칩 교체 대응)
+  if (_currentFlashAddress < START_ADDRESS || _currentFlashAddress >= MAX_ADDRESS) {
+    Serial.printf("Flash addr 0x%08X out of range — resetting to START\n", _currentFlashAddress);
     _currentFlashAddress = START_ADDRESS;
   }
 
-  Serial.printf("Flash resume addr: 0x%08X (%u bytes logged)\n",
+  Serial.printf("Flash resume addr: 0x%08X (%u bytes logged, %u bytes free)\n",
                 _currentFlashAddress,
-                _currentFlashAddress - START_ADDRESS);
+                _currentFlashAddress - START_ADDRESS,
+                MAX_ADDRESS - _currentFlashAddress);
 }
 
 // ============================================================
@@ -107,11 +109,18 @@ void MX25Logger::flushPages() {
 }
 
 void MX25Logger::writePage(uint8_t *page) {
+  // 플래시 끝 도달 시 자동으로 로깅 중지 (덮어쓰기 방지)
+  if (_currentFlashAddress + 256 > MAX_ADDRESS) {
+    if (_enabled) {
+      _enabled = false;
+      Serial.println("Flash FULL — logging disabled");
+    }
+    return;
+  }
+
   if (_spiMutex) xSemaphoreTake(_spiMutex, portMAX_DELAY);
 
-  if (_currentFlashAddress % 4096 == 0) {
-    writeEnable(); eraseSector(_currentFlashAddress); waitUntilDone();
-  }
+  // Note: Erase is handled pre-flight via eraseAll() to avoid latency.
   writeEnable();
   digitalWrite(_csPin, LOW); _spi->transfer(CMD_WRITE);
   _spi->transfer((_currentFlashAddress >> 24) & 0xFF);
@@ -144,11 +153,16 @@ void MX25Logger::forceFlushBuffer() {
   _bufferIndex = 0;
   xSemaphoreGive(_bufferMutex);
 
+  // 플래시 끝 도달 시 잔여 데이터 폐기
+  if (_currentFlashAddress + len > MAX_ADDRESS) {
+    Serial.println("Flash FULL — dropping tail buffer");
+    saveAddress();
+    return;
+  }
+
   if (_spiMutex) xSemaphoreTake(_spiMutex, portMAX_DELAY);
 
-  if (_currentFlashAddress % 4096 == 0) {
-    writeEnable(); eraseSector(_currentFlashAddress); waitUntilDone();
-  }
+  // Note: Erase is handled pre-flight via eraseAll() to avoid latency.
   writeEnable();
   digitalWrite(_csPin, LOW); _spi->transfer(CMD_WRITE);
   _spi->transfer((_currentFlashAddress >> 24) & 0xFF);

@@ -1,0 +1,1202 @@
+<?xml version="1.0" encoding="UTF-8"?><p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld>
+    <p:bg>
+      <p:bgPr>
+        <a:solidFill>
+          <a:schemeClr val="bg1"/>
+        </a:solidFill>
+        <a:effectLst/>
+      </p:bgPr>
+    </p:bg>
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr>
+        <a:xfrm>
+          <a:off x="0" y="0"/>
+          <a:ext cx="0" cy="0"/>
+          <a:chOff x="0" y="0"/>
+          <a:chExt cx="0" cy="0"/>
+        </a:xfrm>
+      </p:grpSpPr>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="9" name="평행 사변형 8"/>
+          <p:cNvSpPr/>
+          <p:nvPr userDrawn="1"/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="1134590" y="6596063"/>
+            <a:ext cx="7583960" cy="261937"/>
+          </a:xfrm>
+          <a:prstGeom prst="parallelogram">
+            <a:avLst>
+              <a:gd name="adj" fmla="val 16111"/>
+            </a:avLst>
+          </a:prstGeom>
+          <a:gradFill>
+            <a:gsLst>
+              <a:gs pos="0">
+                <a:schemeClr val="tx2">
+                  <a:lumMod val="0"/>
+                  <a:lumOff val="100000"/>
+                </a:schemeClr>
+              </a:gs>
+              <a:gs pos="50000">
+                <a:srgbClr val="5B99FF"/>
+              </a:gs>
+              <a:gs pos="100000">
+                <a:srgbClr val="0091DA"/>
+              </a:gs>
+            </a:gsLst>
+            <a:lin ang="5400000" scaled="0"/>
+          </a:gradFill>
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+        </p:spPr>
+        <p:style>
+          <a:lnRef idx="2">
+            <a:schemeClr val="accent1">
+              <a:shade val="50000"/>
+            </a:schemeClr>
+          </a:lnRef>
+          <a:fillRef idx="1">
+            <a:schemeClr val="accent1"/>
+          </a:fillRef>
+          <a:effectRef idx="0">
+            <a:schemeClr val="accent1"/>
+          </a:effectRef>
+          <a:fontRef idx="minor">
+            <a:schemeClr val="lt1"/>
+          </a:fontRef>
+        </p:style>
+        <p:txBody>
+          <a:bodyPr anchor="ctr"/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr algn="ctr" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+              <a:defRPr/>
+            </a:pPr>
+            <a:endParaRPr lang="ko-KR" altLang="en-US"/>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="1027" name="제목 개체 틀 1"/>
+          <p:cNvSpPr>
+            <a:spLocks noGrp="1"/>
+          </p:cNvSpPr>
+          <p:nvPr>
+            <p:ph type="title"/>
+          </p:nvPr>
+        </p:nvSpPr>
+        <p:spPr bwMode="auto">
+          <a:xfrm>
+            <a:off x="457200" y="274638"/>
+            <a:ext cx="8229600" cy="1143000"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:noFill/>
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+          <a:extLst>
+            <a:ext uri="{909E8E84-426E-40DD-AFC4-6F175D3DCCD1}">
+              <a14:hiddenFill xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main">
+                <a:solidFill>
+                  <a:srgbClr val="FFFFFF"/>
+                </a:solidFill>
+              </a14:hiddenFill>
+            </a:ext>
+            <a:ext uri="{91240B29-F687-4F45-9708-019B960494DF}">
+              <a14:hiddenLine xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" w="9525">
+                <a:solidFill>
+                  <a:srgbClr val="000000"/>
+                </a:solidFill>
+                <a:miter lim="800000"/>
+                <a:headEnd/>
+                <a:tailEnd/>
+              </a14:hiddenLine>
+            </a:ext>
+          </a:extLst>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" anchor="ctr" anchorCtr="0" compatLnSpc="1">
+            <a:prstTxWarp prst="textNoShape">
+              <a:avLst/>
+            </a:prstTxWarp>
+          </a:bodyPr>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr lvl="0"/>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" dirty="0"/>
+              <a:t xml:space="preserve">마스터 제목 </a:t>
+            </a:r>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US"/>
+              <a:t>스타일 편집</a:t>
+            </a:r>
+            <a:endParaRPr lang="ko-KR" altLang="en-US" dirty="0"/>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="8" name="TextBox 9"/>
+          <p:cNvSpPr txBox="1">
+            <a:spLocks noChangeArrowheads="1"/>
+          </p:cNvSpPr>
+          <p:nvPr userDrawn="1"/>
+        </p:nvSpPr>
+        <p:spPr bwMode="auto">
+          <a:xfrm>
+            <a:off x="1588" y="6526213"/>
+            <a:ext cx="1133002" cy="400110"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:noFill/>
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="none" lIns="0" tIns="0" rIns="0" bIns="0">
+            <a:spAutoFit/>
+          </a:bodyPr>
+          <a:lstStyle>
+            <a:lvl1pPr eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl1pPr>
+            <a:lvl2pPr marL="742950" indent="-285750" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl2pPr>
+            <a:lvl3pPr marL="1143000" indent="-228600" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl3pPr>
+            <a:lvl4pPr marL="1600200" indent="-228600" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl4pPr>
+            <a:lvl5pPr marL="2057400" indent="-228600" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl5pPr>
+            <a:lvl6pPr marL="2514600" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl6pPr>
+            <a:lvl7pPr marL="2971800" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl7pPr>
+            <a:lvl8pPr marL="3429000" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl8pPr>
+            <a:lvl9pPr marL="3886200" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl9pPr>
+          </a:lstStyle>
+          <a:p>
+            <a:pPr eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+              <a:defRPr/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="2600" i="1">
+                <a:gradFill>
+                  <a:gsLst>
+                    <a:gs pos="0">
+                      <a:schemeClr val="tx2">
+                        <a:lumMod val="0"/>
+                        <a:lumOff val="100000"/>
+                      </a:schemeClr>
+                    </a:gs>
+                    <a:gs pos="50000">
+                      <a:srgbClr val="5B99FF"/>
+                    </a:gs>
+                    <a:gs pos="100000">
+                      <a:srgbClr val="0091DA"/>
+                    </a:gs>
+                  </a:gsLst>
+                  <a:lin ang="5400000" scaled="0"/>
+                </a:gradFill>
+                <a:latin typeface="Franklin Gothic Heavy" pitchFamily="34" charset="0"/>
+                <a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+              </a:rPr>
+              <a:t>Mach 5</a:t>
+            </a:r>
+            <a:endParaRPr lang="ko-KR" altLang="en-US" sz="2600" i="1" dirty="0">
+              <a:gradFill>
+                <a:gsLst>
+                  <a:gs pos="0">
+                    <a:schemeClr val="tx2">
+                      <a:lumMod val="0"/>
+                      <a:lumOff val="100000"/>
+                    </a:schemeClr>
+                  </a:gs>
+                  <a:gs pos="50000">
+                    <a:srgbClr val="5B99FF"/>
+                  </a:gs>
+                  <a:gs pos="100000">
+                    <a:srgbClr val="0091DA"/>
+                  </a:gs>
+                </a:gsLst>
+                <a:lin ang="5400000" scaled="0"/>
+              </a:gradFill>
+              <a:latin typeface="Franklin Gothic Heavy" pitchFamily="34" charset="0"/>
+              <a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+            </a:endParaRPr>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="7" name="직사각형 6"/>
+          <p:cNvSpPr/>
+          <p:nvPr userDrawn="1"/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="8459788" y="6596063"/>
+            <a:ext cx="684212" cy="261937"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:gradFill>
+            <a:gsLst>
+              <a:gs pos="0">
+                <a:schemeClr val="tx2">
+                  <a:lumMod val="0"/>
+                  <a:lumOff val="100000"/>
+                </a:schemeClr>
+              </a:gs>
+              <a:gs pos="50000">
+                <a:srgbClr val="5B99FF"/>
+              </a:gs>
+              <a:gs pos="100000">
+                <a:srgbClr val="0091DA"/>
+              </a:gs>
+            </a:gsLst>
+            <a:lin ang="5400000" scaled="0"/>
+          </a:gradFill>
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+        </p:spPr>
+        <p:style>
+          <a:lnRef idx="2">
+            <a:schemeClr val="accent1">
+              <a:shade val="50000"/>
+            </a:schemeClr>
+          </a:lnRef>
+          <a:fillRef idx="1">
+            <a:schemeClr val="accent1"/>
+          </a:fillRef>
+          <a:effectRef idx="0">
+            <a:schemeClr val="accent1"/>
+          </a:effectRef>
+          <a:fontRef idx="minor">
+            <a:schemeClr val="lt1"/>
+          </a:fontRef>
+        </p:style>
+        <p:txBody>
+          <a:bodyPr anchor="ctr"/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr algn="ctr" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+              <a:defRPr/>
+            </a:pPr>
+            <a:endParaRPr lang="ko-KR" altLang="en-US">
+              <a:solidFill>
+                <a:schemeClr val="tx2">
+                  <a:lumMod val="75000"/>
+                </a:schemeClr>
+              </a:solidFill>
+            </a:endParaRPr>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="10" name="TextBox 13"/>
+          <p:cNvSpPr txBox="1">
+            <a:spLocks noChangeArrowheads="1"/>
+          </p:cNvSpPr>
+          <p:nvPr userDrawn="1"/>
+        </p:nvSpPr>
+        <p:spPr bwMode="auto">
+          <a:xfrm>
+            <a:off x="1101252" y="6596063"/>
+            <a:ext cx="5919020" cy="307777"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:noFill/>
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square">
+            <a:spAutoFit/>
+          </a:bodyPr>
+          <a:lstStyle>
+            <a:lvl1pPr eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl1pPr>
+            <a:lvl2pPr marL="742950" indent="-285750" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl2pPr>
+            <a:lvl3pPr marL="1143000" indent="-228600" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl3pPr>
+            <a:lvl4pPr marL="1600200" indent="-228600" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl4pPr>
+            <a:lvl5pPr marL="2057400" indent="-228600" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl5pPr>
+            <a:lvl6pPr marL="2514600" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl6pPr>
+            <a:lvl7pPr marL="2971800" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl7pPr>
+            <a:lvl8pPr marL="3429000" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl8pPr>
+            <a:lvl9pPr marL="3886200" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl9pPr>
+          </a:lstStyle>
+          <a:p>
+            <a:pPr eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+              <a:defRPr/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1400" i="1">
+                <a:solidFill>
+                  <a:schemeClr val="bg1"/>
+                </a:solidFill>
+                <a:latin typeface="Franklin Gothic Heavy" pitchFamily="34" charset="0"/>
+                <a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+              </a:rPr>
+              <a:t>2026 Spring Semester Capstone</a:t>
+            </a:r>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1400" i="1">
+                <a:solidFill>
+                  <a:schemeClr val="bg1"/>
+                </a:solidFill>
+                <a:latin typeface="Franklin Gothic Heavy" pitchFamily="34" charset="0"/>
+                <a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+              </a:rPr>
+              <a:t xml:space="preserve"> </a:t>
+            </a:r>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1400" i="1">
+                <a:solidFill>
+                  <a:schemeClr val="bg1"/>
+                </a:solidFill>
+                <a:latin typeface="Franklin Gothic Heavy" pitchFamily="34" charset="0"/>
+                <a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+              </a:rPr>
+              <a:t>Design Mid-term</a:t>
+            </a:r>
+            <a:r>
+              <a:rPr lang="ko-KR" altLang="en-US" sz="1400" i="1">
+                <a:solidFill>
+                  <a:schemeClr val="bg1"/>
+                </a:solidFill>
+                <a:latin typeface="Franklin Gothic Heavy" pitchFamily="34" charset="0"/>
+                <a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+              </a:rPr>
+              <a:t xml:space="preserve"> </a:t>
+            </a:r>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1400" i="1">
+                <a:solidFill>
+                  <a:schemeClr val="bg1"/>
+                </a:solidFill>
+                <a:latin typeface="Franklin Gothic Heavy" pitchFamily="34" charset="0"/>
+                <a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+              </a:rPr>
+              <a:t>Presentation</a:t>
+            </a:r>
+            <a:endParaRPr lang="ko-KR" altLang="en-US" sz="1400" i="1" dirty="0">
+              <a:solidFill>
+                <a:schemeClr val="bg1"/>
+              </a:solidFill>
+              <a:latin typeface="Franklin Gothic Heavy" pitchFamily="34" charset="0"/>
+              <a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+            </a:endParaRPr>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="11" name="Text Box 7"/>
+          <p:cNvSpPr txBox="1">
+            <a:spLocks noChangeArrowheads="1"/>
+          </p:cNvSpPr>
+          <p:nvPr userDrawn="1"/>
+        </p:nvSpPr>
+        <p:spPr bwMode="auto">
+          <a:xfrm>
+            <a:off x="8459788" y="6575425"/>
+            <a:ext cx="735012" cy="338554"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:noFill/>
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square">
+            <a:spAutoFit/>
+          </a:bodyPr>
+          <a:lstStyle>
+            <a:lvl1pPr eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl1pPr>
+            <a:lvl2pPr marL="742950" indent="-285750" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl2pPr>
+            <a:lvl3pPr marL="1143000" indent="-228600" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl3pPr>
+            <a:lvl4pPr marL="1600200" indent="-228600" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl4pPr>
+            <a:lvl5pPr marL="2057400" indent="-228600" eaLnBrk="0" hangingPunct="0">
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl5pPr>
+            <a:lvl6pPr marL="2514600" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl6pPr>
+            <a:lvl7pPr marL="2971800" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl7pPr>
+            <a:lvl8pPr marL="3429000" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl8pPr>
+            <a:lvl9pPr marL="3886200" indent="-228600" eaLnBrk="0" fontAlgn="base" hangingPunct="0">
+              <a:spcBef>
+                <a:spcPct val="0"/>
+              </a:spcBef>
+              <a:spcAft>
+                <a:spcPct val="0"/>
+              </a:spcAft>
+              <a:defRPr kumimoji="1">
+                <a:solidFill>
+                  <a:schemeClr val="tx1"/>
+                </a:solidFill>
+                <a:latin typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+                <a:ea typeface="맑은 고딕" panose="020B0600000101010101" pitchFamily="50" charset="-127"/>
+              </a:defRPr>
+            </a:lvl9pPr>
+          </a:lstStyle>
+          <a:p>
+            <a:pPr eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+              <a:spcBef>
+                <a:spcPct val="50000"/>
+              </a:spcBef>
+              <a:defRPr/>
+            </a:pPr>
+            <a:fld id="{31E6212C-0CEC-4ECC-B11B-28C0C91599B1}" type="slidenum">
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1600" b="1" smtClean="0">
+                <a:solidFill>
+                  <a:schemeClr val="bg1"/>
+                </a:solidFill>
+                <a:latin typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+                <a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+                <a:cs typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+              </a:rPr>
+              <a:pPr eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+                <a:spcBef>
+                  <a:spcPct val="50000"/>
+                </a:spcBef>
+                <a:defRPr/>
+              </a:pPr>
+              <a:t>‹#›</a:t>
+            </a:fld>
+            <a:r>
+              <a:rPr lang="en-US" altLang="ko-KR" sz="1600" b="1">
+                <a:solidFill>
+                  <a:schemeClr val="bg1"/>
+                </a:solidFill>
+                <a:latin typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+                <a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+                <a:cs typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+              </a:rPr>
+              <a:t>/28</a:t>
+            </a:r>
+            <a:endParaRPr lang="en-US" altLang="ko-KR" sz="1600" b="1" dirty="0">
+              <a:solidFill>
+                <a:schemeClr val="bg1"/>
+              </a:solidFill>
+              <a:latin typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+              <a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+              <a:cs typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+            </a:endParaRPr>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:pic>
+        <p:nvPicPr>
+          <p:cNvPr id="3" name="그림 2" descr="상징, 원, 로고, 폰트이(가) 표시된 사진&#10;&#10;AI 생성 콘텐츠는 정확하지 않을 수 있습니다.">
+            <a:extLst>
+              <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+                <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{B7024EC3-5997-42EF-3C1A-A6F55EC48600}"/>
+              </a:ext>
+            </a:extLst>
+          </p:cNvPr>
+          <p:cNvPicPr>
+            <a:picLocks noChangeAspect="1"/>
+          </p:cNvPicPr>
+          <p:nvPr userDrawn="1"/>
+        </p:nvPicPr>
+        <p:blipFill>
+          <a:blip r:embed="rId4"/>
+          <a:stretch>
+            <a:fillRect/>
+          </a:stretch>
+        </p:blipFill>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="8604448" y="32489"/>
+            <a:ext cx="539551" cy="537174"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+        </p:spPr>
+      </p:pic>
+    </p:spTree>
+  </p:cSld>
+  <p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>
+  <p:sldLayoutIdLst>
+    <p:sldLayoutId id="2147484519" r:id="rId1"/>
+    <p:sldLayoutId id="2147484522" r:id="rId2"/>
+  </p:sldLayoutIdLst>
+  <p:txStyles>
+    <p:titleStyle>
+      <a:lvl1pPr algn="ctr" rtl="0" eaLnBrk="0" fontAlgn="base" latinLnBrk="1" hangingPunct="0">
+        <a:spcBef>
+          <a:spcPct val="0"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:defRPr sz="4400" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mj-lt"/>
+          <a:ea typeface="+mj-ea"/>
+          <a:cs typeface="+mj-cs"/>
+        </a:defRPr>
+      </a:lvl1pPr>
+      <a:lvl2pPr algn="ctr" rtl="0" eaLnBrk="0" fontAlgn="base" latinLnBrk="1" hangingPunct="0">
+        <a:spcBef>
+          <a:spcPct val="0"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:defRPr sz="4400">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+          <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+        </a:defRPr>
+      </a:lvl2pPr>
+      <a:lvl3pPr algn="ctr" rtl="0" eaLnBrk="0" fontAlgn="base" latinLnBrk="1" hangingPunct="0">
+        <a:spcBef>
+          <a:spcPct val="0"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:defRPr sz="4400">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+          <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+        </a:defRPr>
+      </a:lvl3pPr>
+      <a:lvl4pPr algn="ctr" rtl="0" eaLnBrk="0" fontAlgn="base" latinLnBrk="1" hangingPunct="0">
+        <a:spcBef>
+          <a:spcPct val="0"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:defRPr sz="4400">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+          <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+        </a:defRPr>
+      </a:lvl4pPr>
+      <a:lvl5pPr algn="ctr" rtl="0" eaLnBrk="0" fontAlgn="base" latinLnBrk="1" hangingPunct="0">
+        <a:spcBef>
+          <a:spcPct val="0"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:defRPr sz="4400">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+          <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+        </a:defRPr>
+      </a:lvl5pPr>
+      <a:lvl6pPr marL="457200" algn="ctr" rtl="0" fontAlgn="base" latinLnBrk="1">
+        <a:spcBef>
+          <a:spcPct val="0"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:defRPr sz="4400">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+          <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+        </a:defRPr>
+      </a:lvl6pPr>
+      <a:lvl7pPr marL="914400" algn="ctr" rtl="0" fontAlgn="base" latinLnBrk="1">
+        <a:spcBef>
+          <a:spcPct val="0"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:defRPr sz="4400">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+          <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+        </a:defRPr>
+      </a:lvl7pPr>
+      <a:lvl8pPr marL="1371600" algn="ctr" rtl="0" fontAlgn="base" latinLnBrk="1">
+        <a:spcBef>
+          <a:spcPct val="0"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:defRPr sz="4400">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+          <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+        </a:defRPr>
+      </a:lvl8pPr>
+      <a:lvl9pPr marL="1828800" algn="ctr" rtl="0" fontAlgn="base" latinLnBrk="1">
+        <a:spcBef>
+          <a:spcPct val="0"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:defRPr sz="4400">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+          <a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/>
+        </a:defRPr>
+      </a:lvl9pPr>
+    </p:titleStyle>
+    <p:bodyStyle>
+      <a:lvl1pPr marL="342900" indent="-342900" algn="l" rtl="0" eaLnBrk="0" fontAlgn="base" latinLnBrk="1" hangingPunct="0">
+        <a:spcBef>
+          <a:spcPct val="20000"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:buFont typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+        <a:buChar char="•"/>
+        <a:defRPr sz="3200" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl1pPr>
+      <a:lvl2pPr marL="742950" indent="-285750" algn="l" rtl="0" eaLnBrk="0" fontAlgn="base" latinLnBrk="1" hangingPunct="0">
+        <a:spcBef>
+          <a:spcPct val="20000"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:buFont typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+        <a:buChar char="–"/>
+        <a:defRPr sz="2800" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl2pPr>
+      <a:lvl3pPr marL="1143000" indent="-228600" algn="l" rtl="0" eaLnBrk="0" fontAlgn="base" latinLnBrk="1" hangingPunct="0">
+        <a:spcBef>
+          <a:spcPct val="20000"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:buFont typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+        <a:buChar char="•"/>
+        <a:defRPr sz="2400" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl3pPr>
+      <a:lvl4pPr marL="1600200" indent="-228600" algn="l" rtl="0" eaLnBrk="0" fontAlgn="base" latinLnBrk="1" hangingPunct="0">
+        <a:spcBef>
+          <a:spcPct val="20000"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:buFont typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+        <a:buChar char="–"/>
+        <a:defRPr sz="2000" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl4pPr>
+      <a:lvl5pPr marL="2057400" indent="-228600" algn="l" rtl="0" eaLnBrk="0" fontAlgn="base" latinLnBrk="1" hangingPunct="0">
+        <a:spcBef>
+          <a:spcPct val="20000"/>
+        </a:spcBef>
+        <a:spcAft>
+          <a:spcPct val="0"/>
+        </a:spcAft>
+        <a:buFont typeface="Arial" panose="020B0604020202020204" pitchFamily="34" charset="0"/>
+        <a:buChar char="»"/>
+        <a:defRPr sz="2000" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl5pPr>
+      <a:lvl6pPr marL="2514600" indent="-228600" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:spcBef>
+          <a:spcPct val="20000"/>
+        </a:spcBef>
+        <a:buFont typeface="Arial" pitchFamily="34" charset="0"/>
+        <a:buChar char="•"/>
+        <a:defRPr sz="2000" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl6pPr>
+      <a:lvl7pPr marL="2971800" indent="-228600" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:spcBef>
+          <a:spcPct val="20000"/>
+        </a:spcBef>
+        <a:buFont typeface="Arial" pitchFamily="34" charset="0"/>
+        <a:buChar char="•"/>
+        <a:defRPr sz="2000" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl7pPr>
+      <a:lvl8pPr marL="3429000" indent="-228600" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:spcBef>
+          <a:spcPct val="20000"/>
+        </a:spcBef>
+        <a:buFont typeface="Arial" pitchFamily="34" charset="0"/>
+        <a:buChar char="•"/>
+        <a:defRPr sz="2000" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl8pPr>
+      <a:lvl9pPr marL="3886200" indent="-228600" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:spcBef>
+          <a:spcPct val="20000"/>
+        </a:spcBef>
+        <a:buFont typeface="Arial" pitchFamily="34" charset="0"/>
+        <a:buChar char="•"/>
+        <a:defRPr sz="2000" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl9pPr>
+    </p:bodyStyle>
+    <p:otherStyle>
+      <a:defPPr>
+        <a:defRPr lang="ko-KR"/>
+      </a:defPPr>
+      <a:lvl1pPr marL="0" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:defRPr sz="1800" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl1pPr>
+      <a:lvl2pPr marL="457200" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:defRPr sz="1800" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl2pPr>
+      <a:lvl3pPr marL="914400" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:defRPr sz="1800" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl3pPr>
+      <a:lvl4pPr marL="1371600" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:defRPr sz="1800" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl4pPr>
+      <a:lvl5pPr marL="1828800" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:defRPr sz="1800" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl5pPr>
+      <a:lvl6pPr marL="2286000" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:defRPr sz="1800" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl6pPr>
+      <a:lvl7pPr marL="2743200" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:defRPr sz="1800" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl7pPr>
+      <a:lvl8pPr marL="3200400" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:defRPr sz="1800" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl8pPr>
+      <a:lvl9pPr marL="3657600" algn="l" defTabSz="914400" rtl="0" eaLnBrk="1" latinLnBrk="1" hangingPunct="1">
+        <a:defRPr sz="1800" kern="1200">
+          <a:solidFill>
+            <a:schemeClr val="tx1"/>
+          </a:solidFill>
+          <a:latin typeface="+mn-lt"/>
+          <a:ea typeface="+mn-ea"/>
+          <a:cs typeface="+mn-cs"/>
+        </a:defRPr>
+      </a:lvl9pPr>
+    </p:otherStyle>
+  </p:txStyles>
+</p:sldMaster>

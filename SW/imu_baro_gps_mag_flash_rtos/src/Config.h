@@ -68,8 +68,8 @@
 // ============================================================
 // Sensor & Logic Parameters
 // ============================================================
-#define MAG_POLL_MS       2
-#define GPS_POLL_MS       10
+#define MAG_POLL_MS       10
+#define GPS_POLL_MS       50
 #define CALIB_SAMPLES     100
 #define MAG_CALIB_MS      30000
 

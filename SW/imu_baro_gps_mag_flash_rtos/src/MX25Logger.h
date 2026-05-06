@@ -85,6 +85,8 @@ class MX25Logger {
     Preferences _prefs;
 
     const uint32_t START_ADDRESS = 0x0000000;
+    // MX25L25645GM2I-08G : 256Mbit = 32MB
+    static const uint32_t MAX_ADDRESS = 0x02000000;
 
     // ---- Typed log queue (in-RAM staging from sensor tasks → FlushTask) ----
     static const uint8_t  ITEM_MAX_SIZE = 80;   // largest packet (state_pkt = 71 B)

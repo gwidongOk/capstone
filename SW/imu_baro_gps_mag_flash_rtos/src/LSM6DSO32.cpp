@@ -65,15 +65,17 @@ bool LSM6DSO32::calibrate(uint16_t nSamples) {
     _bias_gx = (int16_t)(sum_gx / (int32_t)nSamples);
     _bias_gy = (int16_t)(sum_gy / (int32_t)nSamples);
     _bias_gz = (int16_t)(sum_gz / (int32_t)nSamples);
-    
-    // 캘리브레이션 시 보드가 수평(Sensor Z가 하늘 방향)이라고 가정
-    // 가속도계는 중력의 반대 방향(수직 항력)인 +1g를 측정함.
+
+    // 캘리브레이션 자세: 로켓 수직 거치(노즈콘 Up), 발사대 90°
+    //   Body X = Nosecone = Up   → Sensor Y가 하늘 방향, +1g 측정
+    //   Body Y = Right   = 수평  → Sensor X ≈ 0g
+    //   Body Z = Down    = 수평  → Sensor Z ≈ 0g
     // ±32g 설정에서 1g = 1025 LSB (0.976mg/LSB)
     const int16_t G_LSB = 1025;
 
-    _bias_ax = (int16_t)(sum_ax / (int32_t)nSamples);
-    _bias_ay = (int16_t)(sum_ay / (int32_t)nSamples);
-    _bias_az = (int16_t)((sum_az / (int32_t)nSamples) - G_LSB); // Zero-g 바이어스 추출
+    _bias_ax = (int16_t)(sum_ax / (int32_t)nSamples);                     // X: 0g
+    _bias_ay = (int16_t)((sum_ay / (int32_t)nSamples) - G_LSB);           // Y: -1g 차감
+    _bias_az = (int16_t)(sum_az / (int32_t)nSamples);                     // Z: 0g
 
     double var_gx = (sq_sum_gx / nSamples) - ((double)_bias_gx * _bias_gx);
     double var_ax = (sq_sum_ax / nSamples) - ((double)_bias_ax * _bias_ax);

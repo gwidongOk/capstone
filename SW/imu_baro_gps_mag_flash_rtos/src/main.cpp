@@ -197,17 +197,45 @@ void loop() {
       beep(500);
     }
     else if (cmd == "ZUPT") {
-      sendResponse("ALIGNING EKF (5S)...\n");
+      sendResponse("ALIGNING EKF...\n");
       digitalWrite(LED_PIN, HIGH);
-      for (int i = 0; i < 50; i++) {
+
+      // 수렴 판정 파라미터
+      const int   MIN_ITER     = 10;     // 최소 1.0s (조기 false-positive 방지)
+      const int   MAX_ITER     = 200;    // 최대 20.0s (안전 상한)
+      const float REL_THRESH   = 1e-3f;  // P 상대 변화 0.1% 이하면 안정
+      const int   STABLE_REQ   = 3;      // 연속 안정 횟수
+
+      float P_prev = 0.0f;
+      int   stable_count = 0;
+      int   iter = 0;
+      bool  converged = false;
+
+      for (iter = 0; iter < MAX_ITER; iter++) {
         if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
           if (!nav.isEkfReady()) nav.ekfBegin();
           nav.ekfUpdateStaticAlignment();
+          float P_now = nav.ekf().attBiasCovTrace();
           xSemaphoreGive(navMutex);
+
+          if (iter >= MIN_ITER && P_prev > 0.0f) {
+            float rel = fabsf(P_prev - P_now) / P_prev;
+            if (rel < REL_THRESH) {
+              if (++stable_count >= STABLE_REQ) { converged = true; break; }
+            } else {
+              stable_count = 0;
+            }
+          }
+          P_prev = P_now;
         }
         vTaskDelay(pdMS_TO_TICKS(100));
       }
-      sendResponse("DONE.\n");
+
+      char buf[80];
+      snprintf(buf, sizeof(buf), "ZUPT %s in %.1fs (P_trace=%.3e)\n",
+               converged ? "CONVERGED" : "TIMEOUT",
+               (iter + 1) * 0.1f, P_prev);
+      sendResponse(buf);
       digitalWrite(LED_PIN, LOW); beep(100);
     }
     else if (cmd == "START") {
@@ -272,6 +300,9 @@ void loop() {
 // Flight Control Task (Core 0, 10Hz)
 // ============================================================
 void Flight_Task(void *pvParameters) {
+  uint32_t pyro1_start_ms = 0;
+  bool pyro1_active = false;
+
   for (;;) {
     // START 명령이 올 때까지 무한 대기 (CPU 점유 0)
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -281,6 +312,12 @@ void Flight_Task(void *pvParameters) {
 
     while (flightActive) {
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(100)); // 10Hz
+
+      // Non-blocking pyro control: Check if 1000ms has passed since activation
+      if (pyro1_active && (millis() - pyro1_start_ms > 1000)) {
+        digitalWrite(PYRO_1_PIN, LOW);
+        pyro1_active = false;
+      }
 
       State_nominal s;
       State_imu imu_state;
@@ -320,16 +357,27 @@ void Flight_Task(void *pvParameters) {
           }
           break;
 
-        case FlightPhase::COASTING:
-          if (vel_up < 0.0f && alt > 10.0f) {
-            flightPhase = FlightPhase::DESCENT;
-            logger.logEvent(flightPhase, 3);
-            sendResponse("APG\n");
-            digitalWrite(PYRO_1_PIN, HIGH);
-            vTaskDelay(pdMS_TO_TICKS(1000));
-            digitalWrite(PYRO_1_PIN, LOW);
+        case FlightPhase::COASTING: {
+          // Apogee detection: 3 consecutive samples (300ms) with descent speed
+          static uint8_t descent_count = 0;
+          if (vel_up < -1.0f && alt > 15.0f) { // Threshold tightened: -1.0m/s, >15m alt
+            descent_count++;
+            if (descent_count >= 3) {
+              flightPhase = FlightPhase::DESCENT;
+              logger.logEvent(flightPhase, 3);
+              sendResponse("APG\n");
+              
+              digitalWrite(PYRO_1_PIN, HIGH);
+              pyro1_start_ms = millis();
+              pyro1_active = true;
+              
+              descent_count = 0;
+            }
+          } else {
+            descent_count = 0;
           }
           break;
+        }
 
         case FlightPhase::DESCENT:
           if (alt < 10.0f && fabsf(vel_up) < 1.0f) {

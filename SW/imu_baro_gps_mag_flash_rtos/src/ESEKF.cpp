@@ -46,6 +46,8 @@ void ESEKF::reset() {
     _g_ned << 0.0f, 0.0f, G_VAL;
     _m_ref_ned << 0.5961f, -0.0838f, 0.7986f; // Korea Default
 
+    _last_accel_mag = 0.0f;
+
     // 초기 공분산 (P0)
     _covP.setZero();
     _covP.diagonal().segment<3>(0).array()  = 3.0f * 3.0f;     // pos
@@ -73,6 +75,9 @@ void ESEKF::predict(const float a_m[3], const float w_m[3], float dt) {
 
     Vector3f a_hat = am - _ba;
     Vector3f w_hat = wm - _bg;
+
+    // bias-corrected specific force 크기 저장 (GPS high-G 페널티에서 사용)
+    _last_accel_mag = a_hat.norm();
 
     Matrix3f R_nb = _q.toRotationMatrix();
 
@@ -146,13 +151,14 @@ void ESEKF::measurementUpdate(const MatrixXf& H, const VectorXf& y, const Matrix
     Matrix<float, 15, 15> G = Matrix<float, 15, 15>::Identity();
     G.block<3,3>(6, 6) = Matrix3f::Identity() - skew(dth * 0.5f);
     _covP = G * _covP * G.transpose();
+    _covP = 0.5f * (_covP + _covP.transpose()).eval();
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 // Sensor Updates
 // ─────────────────────────────────────────────────────────────────────────
 
-void ESEKF::updateGps(float pn, float pe, float pd, float vn, float ve, float vd, float hAcc, float vAcc, float accel_mag) {
+void ESEKF::updateGps(float pn, float pe, float pd, float vn, float ve, float vd, float hAcc, float vAcc) {
     Matrix<float, 6, 15> H = Matrix<float, 6, 15>::Zero();
     H.block<3,3>(0,0) = Matrix3f::Identity();
     H.block<3,3>(3,3) = Matrix3f::Identity();
@@ -164,13 +170,14 @@ void ESEKF::updateGps(float pn, float pe, float pd, float vn, float ve, float vd
     float multiplier = 3.0f;
 
     // 2. 가속도 기반 동적 스케일링 (4g 한계 대응)
+    // 내부에 저장된 bias 보정된 specific force 크기 사용
     // 4g (약 39.2m/s^2)를 넘어가면 GPS 신뢰도를 급격히 낮춤
-    const float G4_LIMIT = 4.0f * 9.80665f;
+    const float G4_LIMIT = 4.0f * G_VAL;
     float high_g_penalty = 1.0f;
-    if (accel_mag > G4_LIMIT) {
-        float excess = accel_mag - G4_LIMIT;
+    if (_last_accel_mag > G4_LIMIT) {
+        float excess = _last_accel_mag - G4_LIMIT;
         // 가중치를 제곱 비례로 증가 (4g 초과 시 매우 빠르게 무시됨)
-        high_g_penalty = 1.0f + (excess * excess * 10.0f); 
+        high_g_penalty = 1.0f + (excess * excess * 10.0f);
         if (high_g_penalty > 1000.0f) high_g_penalty = 1000.0f; // 최대 페널티 제한
     }
 
