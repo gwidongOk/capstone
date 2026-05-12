@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../2026ALTIS/2026ALTIS"
+		},
+		{
+			"name": "noise_measurement",
+			"path": "../../../../../2026ALTIS/2026ALTIS/SW/noise_measurement"
+		},
+		{
+			"name": "ESEKF",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}
