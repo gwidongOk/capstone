@@ -70,7 +70,7 @@ private:
     Eigen::Vector3f    _bg;
 
     // error covariance
-    Eigen::Matrix<float, 15, 15> _P;
+    Eigen::Matrix<float, 15, 15> _covP;
 
     Eigen::Vector3f _g_ned;
     Eigen::Vector3f _m_ref_ned;
@@ -86,14 +86,14 @@ private:
                            const Eigen::Matrix<float, M, M>& R)
     {
         using namespace Eigen;
-        Matrix<float, M, M>  S  = H * _P * H.transpose() + R;
-        Matrix<float, 15, M> K  = _P * H.transpose() * S.inverse();
+        Matrix<float, M, M>  S  = H * _covP * H.transpose() + R;
+        Matrix<float, 15, M> K  = _covP * H.transpose() * S.inverse();
         Matrix<float, 15, 1> dx = K * y;
 
         Matrix<float, 15, 15> I15 = Matrix<float, 15, 15>::Identity();
         Matrix<float, 15, 15> IKH = I15 - K * H;
-        _P = IKH * _P * IKH.transpose() + K * R * K.transpose();
-        _P = 0.5f * (_P + _P.transpose()).eval();
+        _covP = IKH * _covP * IKH.transpose() + K * R * K.transpose();
+        _covP = 0.5f * (_covP + _covP.transpose()).eval();
 
         // 오차 주입
         _p(0) += dx(0);  _p(1) += dx(1);  _p(2) += dx(2);
@@ -124,8 +124,8 @@ private:
         // 리셋 야코비안 G (자세 블록만 비단위)
         Matrix<float, 15, 15> G = I15;
         G.block<3,3>(6,6) = Matrix3f::Identity() - skew(dth * 0.5f);
-        _P = G * _P * G.transpose();
-        _P = 0.5f * (_P + _P.transpose()).eval();
+        _covP = G * _covP * G.transpose();
+        _covP = 0.5f * (_covP + _covP.transpose()).eval();
     }
 };
 

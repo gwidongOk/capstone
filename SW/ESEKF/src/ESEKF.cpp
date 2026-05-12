@@ -16,12 +16,12 @@ void ESEKF::reset() {
     _m_ref_ned << 0.5961f, -0.0838f, 0.7986f;   // Korea ref
     _last_accel_mag = 0.0f;
 
-    _P.setZero();
-    _P.diagonal().segment<3>(0).array()  = P0_POS * P0_POS;
-    _P.diagonal().segment<3>(3).array()  = P0_VEL * P0_VEL;
-    _P.diagonal().segment<3>(6).array()  = P0_ATT * P0_ATT;
-    _P.diagonal().segment<3>(9).array()  = P0_BA  * P0_BA;
-    _P.diagonal().segment<3>(12).array() = P0_BG  * P0_BG;
+    _covP.setZero();
+    _covP.diagonal().segment<3>(0).array()  = P0_POS * P0_POS;
+    _covP.diagonal().segment<3>(3).array()  = P0_VEL * P0_VEL;
+    _covP.diagonal().segment<3>(6).array()  = P0_ATT * P0_ATT;
+    _covP.diagonal().segment<3>(9).array()  = P0_BA  * P0_BA;
+    _covP.diagonal().segment<3>(12).array() = P0_BG  * P0_BG;
 }
 
 void ESEKF::init(const float p0[3], const float v0[3], const float q0[4]) {
@@ -89,8 +89,8 @@ void ESEKF::predict(const float a_m[3], const float w_m[3], float dt) {
     Q.diagonal().segment<3>(9).array()  = VAR_BA   * dt;
     Q.diagonal().segment<3>(12).array() = VAR_BG   * dt;
 
-    _P = F * _P * F.transpose() + Q;
-    _P = 0.5f * (_P + _P.transpose()).eval();
+    _covP = F * _covP * F.transpose() + Q;
+    _covP = 0.5f * (_covP + _covP.transpose()).eval();
 }
 
 // ──────────────────────────────────────────────
@@ -248,7 +248,7 @@ void ESEKF::triad(const float acc[3], const float mag[3],
 // helpers
 // ──────────────────────────────────────────────
 void ESEKF::covDiag(float out[15]) const {
-    for (int i = 0; i < 15; ++i) out[i] = _P(i, i);
+    for (int i = 0; i < 15; ++i) out[i] = _covP(i, i);
 }
 
 void ESEKF::syncQuatRaw() {
