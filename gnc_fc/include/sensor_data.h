@@ -12,6 +12,7 @@
 #define ID_GPS   4
 #define ID_STATE 5
 #define ID_EVENT 6
+#define ID_GNC   7
 
 // ============================================================
 // In-RAM sensor data (not packed — used in tasks, NAV, queues)
@@ -134,6 +135,17 @@ struct event_pkt {
   uint8_t  phase;    // Current FlightPhase
   uint8_t  event_id; // 0:None, 1:Launch, 2:Apogee, 3:Landing
 };
+
+// ID 7 : GNC output (accel commands + fin deflections)
+struct gnc_pkt {
+  PacketHeader header;
+  uint32_t t;
+  float nz_cmd;       // pitch accel command [g]
+  float ny_cmd;       // yaw accel command [g]
+  float fin_cmd[4];   // fin deflections [rad]
+  uint8_t phase;      // flight_phase_t
+};
+
 
 #pragma pack(pop)
 
