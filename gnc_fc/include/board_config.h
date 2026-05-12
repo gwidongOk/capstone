@@ -1,5 +1,5 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef BOARD_CONFIG_H
+#define BOARD_CONFIG_H
 
 // ============================================================
 // Hardware pins (2026 ALTIS AVIONICS V1.1)
