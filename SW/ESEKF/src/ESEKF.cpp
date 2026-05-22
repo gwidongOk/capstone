@@ -16,6 +16,12 @@ void ESEKF::reset() {
     _m_ref_ned << 0.5961f, -0.0838f, 0.7986f;   // Korea ref
     _last_accel_mag = 0.0f;
 
+    // Reset adaptive Q window
+    for (int i = 0; i < AQ_WIN; i++) _aq_win[i] = 0.0f;
+    _aq_idx  = 0;
+    _aq_full = false;
+    _aq_var  = VAR_ACC;
+
     _covP.setZero();
     _covP.diagonal().segment<3>(0).array()  = P0_POS * P0_POS;
     _covP.diagonal().segment<3>(3).array()  = P0_VEL * P0_VEL;
@@ -42,6 +48,23 @@ void ESEKF::predict(const float a_m[3], const float w_m[3], float dt) {
     Vector3f a_hat = am - _ba;
     Vector3f w_hat = wm - _bg;
     _last_accel_mag = a_hat.norm();
+
+    // ── Adaptive Q: update rolling window with bias-corrected specific force ──
+    _aq_win[_aq_idx] = _last_accel_mag;
+    _aq_idx = (_aq_idx + 1) % AQ_WIN;
+    if (_aq_idx == 0) _aq_full = true;
+    {
+        int n = _aq_full ? AQ_WIN : _aq_idx;
+        if (n >= 2) {
+            float s = 0.0f, sq = 0.0f;
+            for (int i = 0; i < n; i++) { s += _aq_win[i]; sq += _aq_win[i]*_aq_win[i]; }
+            float mean = s / n;
+            float var  = sq / n - mean * mean;
+            _aq_var = (var > VAR_ACC) ? var : VAR_ACC;
+        }
+    }
+    float q_acc_scale = _aq_var / VAR_ACC;
+    if (q_acc_scale > AQ_SCALE_MAX) q_acc_scale = AQ_SCALE_MAX;
 
     Matrix3f R_nb = _q.toRotationMatrix();
     Vector3f a_ned = R_nb * a_hat + _g_ned;
@@ -82,10 +105,10 @@ void ESEKF::predict(const float a_m[3], const float w_m[3], float dt) {
     Matrix<float, 15, 15> F    = Matrix<float, 15, 15>::Identity()
                                + Fdt + 0.5f * Fdt2 + (1.0f / 6.0f) * Fdt3;
 
-    // discrete Q
+    // discrete Q — velocity/attitude rows scale with adaptive q_acc_scale
     Matrix<float, 15, 15> Q = Matrix<float, 15, 15>::Zero();
-    Q.diagonal().segment<3>(3).array()  = VAR_ACC  * dt;
-    Q.diagonal().segment<3>(6).array()  = VAR_GYRO * dt;
+    Q.diagonal().segment<3>(3).array()  = VAR_ACC  * q_acc_scale * dt;  // adaptive
+    Q.diagonal().segment<3>(6).array()  = VAR_GYRO * q_acc_scale * dt;  // adaptive
     Q.diagonal().segment<3>(9).array()  = VAR_BA   * dt;
     Q.diagonal().segment<3>(12).array() = VAR_BG   * dt;
 

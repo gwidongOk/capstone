@@ -19,10 +19,19 @@ private:
     ESEKF _ekf;
     bool  _ekf_ready = false;
 
-    // Time tracking for IMU dt
-    int64_t _last_imu_time_us = 0;
+    bool     _init_avg_active = false;
+    uint16_t _init_imu_count = 0;
+    uint16_t _init_mag_count = 0;
+    float    _init_acc_sum[3] = {0.0f, 0.0f, 0.0f};
+    float    _init_mag_sum[3] = {0.0f, 0.0f, 0.0f};
+    bool     _launch_site_set = false;
+    float    _launch_lat_deg = NAN;
+    float    _launch_lon_deg = NAN;
 
-    // LSM6DSO32 ±32g / ±2000dps sensitivities
+    // Time tracking for IMU dt
+    uint32_t _last_imu_time_us = 0;
+
+    // IMU scale factors
     // (LSM6DSO32::readCalibratedIMU returns int16 in SENSOR LSBs after axis remap)
     static constexpr float ACCEL_SCALE = 0.976f * 0.001f * 9.80665f;
     static constexpr float GYRO_SCALE  = 70.0f  * 0.001f * (M_PI / 180.0f);
@@ -32,23 +41,26 @@ private:
 public:
     NAV();
 
-    // Sensor task callbacks — copy + (for IMU) convert to SI
+    // Sensor callbacks
     void updateIMU(const Raw_imu &raw);
     void updatePress(const Raw_press &p);
     void updateMag(const Raw_mag &m);
     void updateGps(const Raw_gps &g);
 
-    // ===== ES-EKF lifecycle =====
+    // ES-EKF lifecycle
     // Initialize from latest sensor data (TRIAD on current IMU+Mag).
     // Position/velocity initialized from GPS NED if available, else zero.
     // Returns false if accel or mag readings look invalid.
     bool ekfBegin();
+    bool ekfBeginAveraged(uint16_t minImuSamples = 100, uint16_t minMagSamples = 5);
     // Initialize with explicit nominal state.
     void ekfBegin(const float p0[3], const float v0[3], const float q0[4]);
     void ekfReset();
+    void resetInitAverage();
+    void setLaunchSite(float lat_deg, float lon_deg);
     bool isEkfReady() const { return _ekf_ready; }
 
-    // ===== ES-EKF cycle =====
+    // ES-EKF cycle
     void ekfPredict(float dt);
     void ekfUpdateBaro();
     void ekfUpdateMag();

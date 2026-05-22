@@ -64,25 +64,43 @@ void detachSensorInterrupts() {
 void performCalibration() {
   bool wasLogging = isLogging;
   isLogging = false;
-
-  // 인터럽트 해제 → 센서 태스크가 ulTaskNotifyTake에서 자연 대기
   detachSensorInterrupts();
   vTaskDelay(pdMS_TO_TICKS(100));
 
   float c_gx, c_gy, c_gz, c_ax, c_ay, c_az, c_p;
+  bool imuOk = false, bmpOk = false;
 
-  if (xSemaphoreTake(spiMutex, portMAX_DELAY) == pdTRUE) {
-    imu.calibrate(c_gx, c_gy, c_gz, c_ax, c_ay, c_az);
-    bmp.calibrate(c_p);
-    xSemaphoreGive(spiMutex);
+  // Retry until both sensors are stable (same pattern as 2-stage rocket)
+  while (!(imuOk && bmpOk)) {
+    sendResponse("CALIBRATING IMU+BMP...\n");
+    if (xSemaphoreTake(spiMutex, portMAX_DELAY) == pdTRUE) {
+      imuOk = imu.calibrate(c_gx, c_gy, c_gz, c_ax, c_ay, c_az);
+      bmpOk = bmp.calibrate(c_p);
+      xSemaphoreGive(spiMutex);
+    }
+
+    if (imuOk && bmpOk) {
+      if (xSemaphoreTake(dataMutex, portMAX_DELAY) == pdTRUE) {
+        nav.calibrate(c_gx, c_gy, c_gz, c_ax, c_ay, c_az, c_p);
+        xSemaphoreGive(dataMutex);
+      }
+    } else {
+      if (!imuOk) sendResponse("IMU NOISY - RETRYING...\n");
+      if (!bmpOk) sendResponse("BARO UNSTABLE - RETRYING...\n");
+
+      // Allow REBOOT to abort the loop
+      String c2 = getIncomingRaw();
+      c2.toUpperCase();
+      if (c2 == "REBOOT") {
+        sendResponse("CALIBRATION ABORTED - REBOOTING...\n");
+        vTaskDelay(pdMS_TO_TICKS(200));
+        ESP.restart();
+      }
+      vTaskDelay(pdMS_TO_TICKS(1000));
+    }
   }
 
-  if (xSemaphoreTake(dataMutex, portMAX_DELAY) == pdTRUE) {
-    nav.calibrate(c_gx, c_gy, c_gz, c_ax, c_ay, c_az, c_p);
-    xSemaphoreGive(dataMutex);
-  }
-
-  // 잔여 데이터 클리어
+  // Flush residual sensor data
   if (xSemaphoreTake(spiMutex, portMAX_DELAY) == pdTRUE) {
     int16_t d1, d2, d3, d4, d5, d6; float d0;
     imu.readRawIMU(d1, d2, d3, d4, d5, d6);
@@ -90,12 +108,8 @@ void performCalibration() {
     xSemaphoreGive(spiMutex);
   }
 
-  // 인터럽트는 항상 복구 (wasLogging 무관)
   attachSensorInterrupts();
-
-  if (wasLogging) {
-    isLogging = true;
-  }
+  if (wasLogging) isLogging = true;
 }
 
 // ============================================================
@@ -240,15 +254,15 @@ void NAV_Task(void *pvParameters) {
                    : 0.0f;
         lastImuTime_us = now_us;
 
-        // ★ EKF predict 삽입 지점
-        // nav.ekfPredict(state_imu, dt);
+        // ★ ESEKF predict insertion point
+        // ekf.predict(a_m, w_m, dt);
 
         if (isLogging) {
           imu_pkt pkt;
           pkt.header.SYNC_BYTE = 0xAA;
-          pkt.header.id = 2;
+          pkt.header.id  = 2;
           pkt.header.len = sizeof(imu_pkt);
-          pkt.t = (uint32_t)(now_us & 0xFFFFFFFF);
+          pkt.t         = (uint32_t)(now_us & 0xFFFFFFFF);
           pkt.rawacc_x  = ri.ax;
           pkt.rawacc_y  = ri.ay;
           pkt.rawacc_z  = ri.az;
@@ -264,8 +278,8 @@ void NAV_Task(void *pvParameters) {
       if (notifiedValue & EVENT_BMP_UPDATE) {
         RocketState_PRESS ps = nav.getState_press();
 
-        // ★ EKF update(baro) 삽입 지점
-        // nav.ekfUpdateBaro(ps.altitude);
+        // ★ ESEKF baro update insertion point
+        // ekf.updateBaro(ps.altitude);
 
         if (isLogging) {
           baro_pkt pkt;
@@ -317,7 +331,7 @@ void setup() {
     while (1);
   }
 
-  initBLE("2026ALTIS");
+  initBLE(BLE_DEVICE_NAME);
   sensorSPI.begin(SPI_SCK_PIN, SPI_MISO_PIN, SPI_MOSI_PIN);
   // flashSPI.begin()은 logger.begin() 내부에서 호출되므로 중복 호출 불필요
 
@@ -352,7 +366,7 @@ void setup() {
   xTaskCreatePinnedToCore(NAV_Task, "NAV_T", 8192, NULL, 3, &TaskHandle_NAV, 1);
   xTaskCreatePinnedToCore(FlushTask, "Flush_T", 4096, NULL, 2, &FlushTaskHandle, 0);
 
-  // 인터럽트 연결
+  // Connect interrupts
   attachSensorInterrupts();
   imu.enableAccelDataReadyInterrupt(1);
 

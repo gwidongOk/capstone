@@ -31,6 +31,13 @@ public:
     static constexpr float P0_BA  = 0.5f;
     static constexpr float P0_BG  = 0.01f;
 
+    // Adaptive Q: rolling window of bias-corrected specific force magnitude.
+    // When the rocket experiences sudden dynamics (2nd-stage ignition, parachute
+    // deployment) the window variance spikes and Q_acc is scaled up so the
+    // velocity/attitude states can adapt quickly — same concept as 1D KF.
+    static constexpr int   AQ_WIN       = 20;
+    static constexpr float AQ_SCALE_MAX = 500.0f;   // cap Q multiplier
+
     ESEKF();
     void reset();
     void init(const float p0[3], const float v0[3], const float q0[4]);
@@ -75,6 +82,12 @@ private:
     Eigen::Vector3f _g_ned;
     Eigen::Vector3f _m_ref_ned;
     float           _last_accel_mag;
+
+    // Adaptive Q rolling window
+    float _aq_win[AQ_WIN];
+    int   _aq_idx  = 0;
+    bool  _aq_full = false;
+    float _aq_var  = VAR_ACC;   // current variance estimate
 
     void syncQuatRaw();
     static void wmmKorea(float lat, float lon, float& D, float& I);

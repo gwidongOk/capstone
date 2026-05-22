@@ -17,7 +17,6 @@ class MX25Logger {
     bool begin(SPIClass *spi, int sck, int miso, int mosi, int cs, SemaphoreHandle_t spiMutex = NULL);
     void eraseAll();
 
-    // 버퍼에 데이터를 추가만 합니다 (플래시 쓰기 없음, 뮤텍스 보호)
     template <typename T>
     void appendData(T& data) {
       xSemaphoreTake(_bufferMutex, portMAX_DELAY);
@@ -29,7 +28,6 @@ class MX25Logger {
       xSemaphoreGive(_bufferMutex);
     }
 
-    // raw 바이트 배열을 버퍼에 추가 (큐에서 받은 데이터용)
     void appendRaw(const uint8_t *data, uint16_t len) {
       xSemaphoreTake(_bufferMutex, portMAX_DELAY);
       if (_bufferIndex + len <= BUFFER_SIZE) {
@@ -39,24 +37,19 @@ class MX25Logger {
       xSemaphoreGive(_bufferMutex);
     }
 
-    // 버퍼에 완성된 페이지(256바이트)가 있으면 플래시에 기록합니다 (뮤텍스 보호)
     void flushPages();
 
-    // 남은 데이터를 모두 플래시에 기록합니다 (로깅 종료 시 호출)
     void forceFlushBuffer();
 
     void dumpRawBinary(Stream &out = Serial);
 
-    // FlushTask에서 페이지가 차 있는지 확인용
     bool hasFullPage();
 
     uint32_t getStartAddress() { return START_ADDRESS; }
     uint32_t getCurrentAddress() { return _currentFlashAddress; }
 
-    // ============================================================
-    // Typed log entry points — packet layout lives in MX25Logger.cpp.
+    // Typed log entry points
     // To change the on-flash format, edit only the corresponding body.
-    // ============================================================
     void logImu  (const Raw_imu       &raw);
     void logBaro (const Raw_press     &p);
     void logMag  (const Raw_mag       &m);
@@ -64,7 +57,6 @@ class MX25Logger {
     void logState(const State_nominal &nom);
     void logEvent(FlightPhase phase, uint8_t eventId); // New: Flight event logging
 
-    // Drain in-RAM queue → flash (called from FlushTask)
     void serviceFlush();
 
     // Logging gate
@@ -88,7 +80,6 @@ class MX25Logger {
     // MX25L25645GM2I-08G : 256Mbit = 32MB
     static const uint32_t MAX_ADDRESS = 0x02000000;
 
-    // ---- Typed log queue (in-RAM staging from sensor tasks → FlushTask) ----
     static const uint8_t  ITEM_MAX_SIZE = 80;   // largest packet (state_pkt = 71 B)
     static const uint16_t QUEUE_LENGTH  = 128;
     struct Item {
@@ -99,7 +90,6 @@ class MX25Logger {
     volatile bool _enabled;
     void _push(const void *pkt, uint8_t len);
 
-    // NVS에 기록 종료 주소를 저장/복원
     void saveAddress();
     void loadAddress();
 

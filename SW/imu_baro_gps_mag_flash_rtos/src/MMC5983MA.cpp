@@ -5,6 +5,12 @@ MMC5983MA::MMC5983MA(TwoWire* wire, uint8_t i2cAddr) {
     _i2cAddr = i2cAddr;
 }
 
+// ----------------------------------------------------------------------------
+// begin() : MMC5983MA 자력계 초기화
+//   - I2C 연결 확인 (PROD_ID) → soft reset → ES-EKF용 기본 설정
+//   - Auto Set/Reset 활성 (자기 잡음 자동 보정)
+//   - 연속측정 모드(100Hz), BW=400Hz, Periodic Set 1샘플마다
+// ----------------------------------------------------------------------------
 bool MMC5983MA::begin() {
     if (!isConnected()) return false;
 
@@ -26,7 +32,7 @@ void MMC5983MA::applyDefaults() {
     enableContinuousMode(true);
 }
 
-// ==================== Settings ====================
+// Settings
 
 bool MMC5983MA::setFilterBandwidth(uint16_t bw) {
     // Clear BW bits in shadow first (no write)
@@ -135,7 +141,7 @@ MMC5983MA_Config MMC5983MA::getConfig() {
     return cfg;
 }
 
-// ==================== Raw Data ====================
+// Raw Data
 
 void MMC5983MA::readRawMag(uint32_t &mx, uint32_t &my, uint32_t &mz) {
     uint8_t buf[7];
@@ -155,8 +161,15 @@ void MMC5983MA::readMag(float &mx, float &my, float &mz) {
     mz = ((float)rz - 131072.0f) / 16384.0f;
 }
 
-// ==================== Calibration ====================
+// Calibration
 
+// ----------------------------------------------------------------------------
+// calibrate() : 8자 회전 보정 (Hard-iron + Soft-iron)
+//   - durationMs 동안 보드를 모든 방향으로 회전
+//   - 각 축 min/max 추적 → bias = (max+min)/2  (Hard-iron 중심오프셋)
+//                       scale = r_avg / r_axis (Soft-iron 축별 반지름 정규화)
+//   - 회전 폭이 0.3 Gauss 미만이면 실패 (회전 부족)
+// ----------------------------------------------------------------------------
 bool MMC5983MA::calibrate(uint32_t durationMs) {
     Serial.println();
     Serial.println("=== Magnetometer Calibration ===");
@@ -203,12 +216,11 @@ bool MMC5983MA::calibrate(uint32_t durationMs) {
         }
     }
 
-    // 품질 검증: 충분히 회전했는지 확인 (범위가 0.3 Gauss 미만이면 불충분)
     float spreadX = maxX - minX;
     float spreadY = maxY - minY;
     float spreadZ = maxZ - minZ;
     if (spreadX < 0.3f || spreadY < 0.3f || spreadZ < 0.3f) {
-        Serial.printf("Mag 교정 실패: 회전 부족 (X:%.2f, Y:%.2f, Z:%.2f)\n", spreadX, spreadY, spreadZ);
+        Serial.printf("MAG CAL FAIL: rotation low (X:%.2f, Y:%.2f, Z:%.2f)\n", spreadX, spreadY, spreadZ);
         applyDefaults();
         return false;
     }
@@ -239,6 +251,12 @@ bool MMC5983MA::calibrate(uint32_t durationMs) {
     return true;
 }
 
+// ----------------------------------------------------------------------------
+// readCalibratedMag() : 보정된 자기장 + 로켓 body 축 매핑
+//   1) Hard-iron : (raw - bias) ⊙ scale
+//   2) 축 매핑   : body_x = sensor_x (노즈콘 방향)
+//                  body_y = -sensor_y, body_z = -sensor_z  (RHR Down)
+// ----------------------------------------------------------------------------
 bool MMC5983MA::readCalibratedMag(float &mx, float &my, float &mz) {
     float sx, sy, sz;
     readMag(sx, sy, sz);
@@ -258,7 +276,7 @@ bool MMC5983MA::readCalibratedMag(float &mx, float &my, float &mz) {
     return true;
 }
 
-// ==================== Interrupt ====================
+// Interrupt
 
 void MMC5983MA::enableDataReadyInterrupt(bool enable) {
     if (enable)
@@ -280,7 +298,6 @@ void MMC5983MA::triggerSingleMeasurement() {
     // Clear Meas_M_Done (W1C) so we can wait for the next completion cleanly.
     writeRegister(REG_STATUS, MEAS_M_DONE);
     // TM_M is self-clearing. Write bare TM_M so we do NOT re-enable AUTO_SR
-    // during a one-shot — AUTO_SR+TM_M only does a SET pulse, leaving a large
     // internal-field bias on the reading.
     // NOTE: TM_M is ignored while CMM_EN=1, so caller must disable continuous mode.
     writeRegister(REG_CTRL0, TM_M);
@@ -301,7 +318,7 @@ bool MMC5983MA::readMagSingleShot(uint32_t& mx, uint32_t& my, uint32_t& mz,
     return true;
 }
 
-// ==================== Utility ====================
+// Utility
 
 bool MMC5983MA::isConnected() {
     uint8_t id = readRegister(REG_PROD_ID);
@@ -330,7 +347,7 @@ void MMC5983MA::performResetOperation() {
     delay(1);
 }
 
-// ==================== Shadow Register Helpers ====================
+// Shadow Register Helpers
 
 void MMC5983MA::shadowSet(uint8_t reg, uint8_t mask, bool write) {
     uint8_t* shadow = nullptr;
@@ -358,7 +375,7 @@ void MMC5983MA::shadowClear(uint8_t reg, uint8_t mask, bool write) {
     if (write) writeRegister(reg, *shadow);
 }
 
-// ==================== I2C Low-Level ====================
+// I2C Low-Level
 
 uint8_t MMC5983MA::readRegister(uint8_t reg) {
     _wire->beginTransmission(_i2cAddr);

@@ -10,7 +10,6 @@
 #define CMD_SECTOR_ERASE 0x20
 #define CMD_CHIP_ERASE   0xC7
 
-// NVS 키
 static const char* NVS_NAMESPACE = "mx25log";
 static const char* NVS_KEY_ADDR  = "endAddr";
 
@@ -24,6 +23,12 @@ MX25Logger::MX25Logger() {
   _enabled = false;
 }
 
+// ----------------------------------------------------------------------------
+// begin() : 플래시 로거 초기화
+//   - FreeRTOS 큐 생성 (센서 태스크 → FlushTask 패킷 전달용)
+//   - 32MB 칩의 4-byte 주소 모드 활성 (EN4B 명령)
+//   - NVS에서 마지막 쓰기 주소 복구 (전원 재인가 후에도 이어 쓰기 위함)
+// ----------------------------------------------------------------------------
 bool MX25Logger::begin(SPIClass *spi, int sck, int miso, int mosi, int cs, SemaphoreHandle_t spiMutex) {
   _queue = xQueueCreate(QUEUE_LENGTH, sizeof(Item));
   if (!_queue) return false;
@@ -43,15 +48,11 @@ bool MX25Logger::begin(SPIClass *spi, int sck, int miso, int mosi, int cs, Semap
 
   vTaskDelay(pdMS_TO_TICKS(10));
 
-  // NVS에서 이전 기록 종료 주소 복원
   loadAddress();
 
   return true;
 }
 
-// ============================================================
-// NVS 영속 저장
-// ============================================================
 void MX25Logger::saveAddress() {
   _prefs.begin(NVS_NAMESPACE, false);
   _prefs.putUInt(NVS_KEY_ADDR, _currentFlashAddress);
@@ -63,9 +64,8 @@ void MX25Logger::loadAddress() {
   _currentFlashAddress = _prefs.getUInt(NVS_KEY_ADDR, START_ADDRESS);
   _prefs.end();
 
-  // 유효성 검증: 범위 밖이면 리셋 (NVS 손상 또는 칩 교체 대응)
   if (_currentFlashAddress < START_ADDRESS || _currentFlashAddress >= MAX_ADDRESS) {
-    Serial.printf("Flash addr 0x%08X out of range — resetting to START\n", _currentFlashAddress);
+    Serial.printf("Flash addr 0x%08X out of range - resetting to START\n", _currentFlashAddress);
     _currentFlashAddress = START_ADDRESS;
   }
 
@@ -75,9 +75,6 @@ void MX25Logger::loadAddress() {
                 MAX_ADDRESS - _currentFlashAddress);
 }
 
-// ============================================================
-// 버퍼/페이지 관리
-// ============================================================
 bool MX25Logger::hasFullPage() {
   xSemaphoreTake(_bufferMutex, portMAX_DELAY);
   bool result = (_bufferIndex >= 256);
@@ -85,6 +82,11 @@ bool MX25Logger::hasFullPage() {
   return result;
 }
 
+// ----------------------------------------------------------------------------
+// flushPages() : 버퍼에 쌓인 256B 페이지를 차례로 플래시에 기록
+//   - bufferMutex로 보호된 영역에서 페이지 복사 후 mutex 해제 → writePage
+//   - writePage가 SPI 점유 동안 다른 센서 태스크가 큐에 push할 수 있도록 함
+// ----------------------------------------------------------------------------
 void MX25Logger::flushPages() {
   xSemaphoreTake(_bufferMutex, portMAX_DELAY);
 
@@ -109,11 +111,10 @@ void MX25Logger::flushPages() {
 }
 
 void MX25Logger::writePage(uint8_t *page) {
-  // 플래시 끝 도달 시 자동으로 로깅 중지 (덮어쓰기 방지)
   if (_currentFlashAddress + 256 > MAX_ADDRESS) {
     if (_enabled) {
       _enabled = false;
-      Serial.println("Flash FULL — logging disabled");
+      Serial.println("Flash FULL - logging disabled");
     }
     return;
   }
@@ -137,6 +138,11 @@ void MX25Logger::writePage(uint8_t *page) {
   if (_spiMutex) xSemaphoreGive(_spiMutex);
 }
 
+// ----------------------------------------------------------------------------
+// forceFlushBuffer() : 마지막 잔여 < 256B도 강제 기록 (STOP / REBOOT 시)
+//   - 페이지 정렬 후, 남은 부분은 잘려도 무방 (어차피 마지막 패킷)
+//   - 끝에 NVS로 _currentFlashAddress 저장 → 다음 부팅에 이어쓰기
+// ----------------------------------------------------------------------------
 void MX25Logger::forceFlushBuffer() {
   flushPages();
 
@@ -153,9 +159,8 @@ void MX25Logger::forceFlushBuffer() {
   _bufferIndex = 0;
   xSemaphoreGive(_bufferMutex);
 
-  // 플래시 끝 도달 시 잔여 데이터 폐기
   if (_currentFlashAddress + len > MAX_ADDRESS) {
-    Serial.println("Flash FULL — dropping tail buffer");
+    Serial.println("Flash FULL - dropping tail buffer");
     saveAddress();
     return;
   }
@@ -181,9 +186,6 @@ void MX25Logger::forceFlushBuffer() {
   saveAddress();
 }
 
-// ============================================================
-// 읽기/덤프
-// ============================================================
 void MX25Logger::dumpRawBinary(Stream &out) {
   uint32_t readAddr = START_ADDRESS;
   uint8_t buffer[256];
@@ -202,9 +204,11 @@ void MX25Logger::dumpRawBinary(Stream &out) {
   out.flush();
 }
 
-// ============================================================
-// 전체 삭제
-// ============================================================
+// ----------------------------------------------------------------------------
+// eraseAll() : 칩 전체 소거 (~80초 소요 가능)
+//   - 비행 직전 ERASE 명령에서 호출. 비행 중에는 절대 호출 X (지연 폭탄)
+//   - Status 레지스터 WIP 비트 폴링으로 완료 대기
+// ----------------------------------------------------------------------------
 void MX25Logger::eraseAll() {
   if (_spiMutex) xSemaphoreTake(_spiMutex, portMAX_DELAY);
 
@@ -228,9 +232,6 @@ void MX25Logger::eraseAll() {
   saveAddress();
 }
 
-// ============================================================
-// 저수준 Flash 명령 (내부용, 뮤텍스는 상위에서 잡아야 함)
-// ============================================================
 void MX25Logger::readFlash(uint32_t addr, uint8_t *buf, uint32_t len) {
   if (_spiMutex) xSemaphoreTake(_spiMutex, portMAX_DELAY);
   digitalWrite(_csPin, LOW); _spi->transfer(CMD_READ);
@@ -242,8 +243,6 @@ void MX25Logger::readFlash(uint32_t addr, uint8_t *buf, uint32_t len) {
 }
 
 void MX25Logger::eraseSector(uint32_t addr) {
-  // NOTE: 상위 writePage/forceFlush에서 이미 뮤텍스를 잡았거나 잡아야 함.
-  // 여기서는 중복해서 잡지 않음 (필요시 재귀 뮤텍스 사용 가능하나 ESP32 기본은 아님)
   digitalWrite(_csPin, LOW); _spi->transfer(CMD_SECTOR_ERASE);
   _spi->transfer((addr >> 24) & 0xFF); _spi->transfer((addr >> 16) & 0xFF);
   _spi->transfer((addr >> 8) & 0xFF); _spi->transfer(addr & 0xFF);
@@ -266,9 +265,7 @@ void MX25Logger::enter4ByteMode() {
   digitalWrite(_csPin, LOW); _spi->transfer(CMD_EN4B); digitalWrite(_csPin, HIGH);
 }
 
-// ============================================================
 // Typed log methods
-// ============================================================
 void MX25Logger::logImu(const Raw_imu &raw) {
   imu_pkt pkt;
   pkt.header.SYNC_BYTE = 0xAA;
@@ -308,7 +305,7 @@ void MX25Logger::logGps(const Raw_gps &g) {
   pkt.t  = g.timestamp;
   pkt.pn = g.pn; pkt.pe = g.pe; pkt.pd = g.pd;
   pkt.vn = g.vn; pkt.ve = g.ve; pkt.vd = g.vd;
-  pkt.hAcc = g.hAcc; pkt.vAcc = g.vAcc;
+  pkt.hAcc = g.hAcc; pkt.vAcc = g.vAcc; pkt.sAcc = g.sAcc;
   pkt.fixType = g.fixType;
   pkt.numSV   = g.numSV;
   _push(&pkt, sizeof(pkt));
@@ -339,6 +336,11 @@ void MX25Logger::logEvent(FlightPhase phase, uint8_t eventId) {
   _push(&pkt, sizeof(pkt));
 }
 
+// ----------------------------------------------------------------------------
+// serviceFlush() : FlushTask 본체 한 사이클
+//   - 큐에서 10ms 대기하며 패킷 1개 꺼내 _dataBuffer에 append
+//   - 256B 채워졌으면 flushPages() 호출
+// ----------------------------------------------------------------------------
 void MX25Logger::serviceFlush() {
   Item item;
   if (xQueueReceive(_queue, &item, pdMS_TO_TICKS(10)) == pdTRUE) {

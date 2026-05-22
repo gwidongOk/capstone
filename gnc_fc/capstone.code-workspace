@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"name": "gnc_fc",
+			"path": "."
+		}
+	],
+	"settings": {}
+}

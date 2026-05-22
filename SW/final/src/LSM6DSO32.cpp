@@ -49,30 +49,38 @@ bool LSM6DSO32::begin() {
     return true;
 }
 
-void LSM6DSO32::calibrate(float &c_gx, float &c_gy, float &c_gz, 
-                          float &c_ax, float &c_ay, float &c_az) {
-    
-  int32_t sum_gx = 0, sum_gy = 0, sum_gz = 0;
-  int32_t sum_ax = 0, sum_ay = 0, sum_az = 0;
+bool LSM6DSO32::calibrate(float &c_gx, float &c_gy, float &c_gz,
+                           float &c_ax, float &c_ay, float &c_az) {
+  const int N = 100;
+  int32_t sum_gx=0, sum_gy=0, sum_gz=0;
+  int32_t sum_ax=0, sum_ay=0, sum_az=0;
 
-  for (int i = 0; i < 100; i++) {
-    int16_t gx, gy, gz;
-    int16_t ax, ay, az;
-    
+  // Step 1: compute mean bias
+  for (int i = 0; i < N; i++) {
+    int16_t gx, gy, gz, ax, ay, az;
     readRawIMU(gx, gy, gz, ax, ay, az);
-    
-    sum_gx += gx; sum_gy += gy; sum_gz += gz;
-    sum_ax += ax; sum_ay += ay; sum_az += az;
-
-    vTaskDelay(pdMS_TO_TICKS(3));  // 416Hz = 2.4ms, 3ms로 여유
+    sum_gx+=gx; sum_gy+=gy; sum_gz+=gz;
+    sum_ax+=ax; sum_ay+=ay; sum_az+=az;
+    vTaskDelay(pdMS_TO_TICKS(3));
   }
+  c_gx = sum_gx/(float)N; c_gy = sum_gy/(float)N; c_gz = sum_gz/(float)N;
+  c_ax = sum_ax/(float)N; c_ay = sum_ay/(float)N; c_az = sum_az/(float)N;
 
-  c_gx = sum_gx / 100.0f; 
-  c_gy = sum_gy / 100.0f; 
-  c_gz = sum_gz / 100.0f;
-  c_ax = sum_ax / 100.0f; 
-  c_ay = sum_ay / 100.0f; 
-  c_az = sum_az / 100.0f;
+  // Step 2: verify stability — re-sample and check residual mean
+  int32_t rs_gx=0, rs_ay=0;
+  for (int i = 0; i < N; i++) {
+    int16_t gx, gy, gz, ax, ay, az;
+    readRawIMU(gx, gy, gz, ax, ay, az);
+    rs_gx += (gx - (int16_t)c_gx);
+    rs_ay += (ay - (int16_t)c_ay);
+    vTaskDelay(pdMS_TO_TICKS(3));
+  }
+  // Thresholds: gyro residual < 1.5 LSB, accel residual < 3.0 LSB
+  if (fabsf((float)rs_gx / N) > 1.5f ||
+      fabsf((float)rs_ay / N) > 3.0f) {
+    return false;  // noisy — caller should retry
+  }
+  return true;
 }
 
 

@@ -1,13 +1,11 @@
 #ifndef PYTHON_HEADER_H
-#define SENSOR_DATA_H
+#define PYTHON_HEADER_H
 
 #include <stdint.h>
 
 #pragma pack(push, 1)
 
-// ============================================================
 // Packet IDs (Used by Python Parser)
-// ============================================================
 #define ID_BARO  1
 #define ID_IMU   2
 #define ID_MAG   3
@@ -48,7 +46,7 @@ struct gps_pkt {
   uint32_t t;
   float pn, pe, pd;
   float vn, ve, vd;
-  float hAcc, vAcc;
+  float hAcc, vAcc, sAcc;
   uint8_t fixType;
   uint8_t numSV;
 };

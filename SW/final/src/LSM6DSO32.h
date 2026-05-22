@@ -39,7 +39,7 @@ public:
     void readRawIMU(int16_t &gx, int16_t &gy, int16_t &gz,
                     int16_t &ax, int16_t &ay, int16_t &az);
 
-    void calibrate(float &gx, float &gy, float &gz,float &ax, float &ay, float &az);
+    bool calibrate(float &gx, float &gy, float &gz, float &ax, float &ay, float &az);
 };
 
 #endif

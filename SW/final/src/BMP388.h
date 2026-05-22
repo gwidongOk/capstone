@@ -38,7 +38,7 @@ public:
     
     // 순수 절대 기압(Pa)만 반환
     bool readData(float &pressure);
-    void calibrate(float &c_p);
+    bool calibrate(float &c_p);
 };
 
 #endif

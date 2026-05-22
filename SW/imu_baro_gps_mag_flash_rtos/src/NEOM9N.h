@@ -31,7 +31,6 @@ public:
     GPS_Raw getRaw() const;
     bool hasFix() const;
 
-    // 편의 함수 — 단위 변환된 값 반환
     float getLatDeg() const;          // [deg]
     float getLonDeg() const;          // [deg]
     float getAltM() const;            // [m]
@@ -45,16 +44,18 @@ public:
     float getHorizontalAcc() const;   // [m]
     float getVerticalAcc() const;     // [m]
 
-    // ===== Calibration (set local NED origin) =====
+    // Calibration (set local NED origin)
     // Uses current fix. Returns false if fix<3 or hAcc too poor.
     bool calibrate(float maxHAcc_m = 5.0f);
     bool isOriginSet() const { return _origin_set; }
+    float getOriginLatDeg() const;
+    float getOriginLonDeg() const;
 
     // Get NED position (m) + velocity (m/s) + accuracy (m) + fix info.
     // Returns false if no origin set or no 3D fix yet (pn/pe/pd = 0 in that case).
     bool getNED(float &pn, float &pe, float &pd,
                 float &vn, float &ve, float &vd,
-                float &hAcc, float &vAcc,
+                float &hAcc, float &vAcc, float &sAcc,
                 uint8_t &fixType, uint8_t &numSV);
 
 private:

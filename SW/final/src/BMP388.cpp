@@ -75,24 +75,28 @@ bool BMP388::readData(float &pressure) {
     return true;
 }
 
-void BMP388::calibrate(float &c_p)
-{
-    float sum_p = 0.0f;
-    for (int i = 0; i < 50; i++)
-    {
-        float d;
-        readData(d);
-        vTaskDelay(pdMS_TO_TICKS(20));
-    }
+bool BMP388::calibrate(float &c_p) {
+  // Warm-up: discard initial samples
+  for (int i = 0; i < 20; i++) { float d; readData(d); vTaskDelay(pdMS_TO_TICKS(20)); }
 
-    for (int i = 0; i < 100; i++)
-    {
-        float p;
-        readData(p);
-        sum_p += p;
-        vTaskDelay(pdMS_TO_TICKS(20));
-    }
-    c_p = sum_p / 100.0f;
+  // Step 1: collect mean pad pressure
+  double sum = 0.0;
+  for (int i = 0; i < 100; i++) {
+    float p; readData(p);
+    sum += p;
+    vTaskDelay(pdMS_TO_TICKS(20));
+  }
+  c_p = (float)(sum / 100.0);
+
+  // Step 2: verify stability — residual mean < 2 Pa (≈ 0.16 m)
+  double resid = 0.0;
+  for (int i = 0; i < 100; i++) {
+    float p; readData(p);
+    resid += (p - c_p);
+    vTaskDelay(pdMS_TO_TICKS(20));
+  }
+  if (fabsf((float)(resid / 100.0)) > 2.0f) return false;
+  return true;
 }
 
 uint8_t BMP388::readRegister(uint8_t reg) {

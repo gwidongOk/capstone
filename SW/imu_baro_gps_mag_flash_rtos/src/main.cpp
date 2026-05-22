@@ -13,9 +13,7 @@
 #include "sensor_data.h"
 #include "BLE.h"
 
-// ============================================================
 // Global objects
-// ============================================================
 static SPIClass sensorSPI(HSPI);
 static SPIClass flashSPI(FSPI);
 
@@ -39,6 +37,7 @@ static SemaphoreHandle_t navMutex   = NULL;
 static SemaphoreHandle_t flashMutex = NULL;
 
 static volatile bool flightActive = false;
+static volatile bool navTestActive = false;
 static FlightPhase flightPhase = FlightPhase::PRE_FLIGHT;
 
 // Forward Declarations
@@ -53,9 +52,12 @@ void clearSensors();
 void attachSensorInterrupts();
 void detachSensorInterrupts();
 
-// ============================================================
-// setup() : Initialization
-// ============================================================
+// =============================================================================
+// setup() : 부트 초기화 (한 번만 실행)
+//   순서 : 핀 → 뮤텍스 → 통신(BLE/SPI/I2C) → 센서 begin → 플래시 → 인터럽트 → RTOS 태스크
+//   - 센서 begin 실패 시 부저 3비프 후 무한루프 (실패 박제)
+//   - GPS는 non-fatal : 없어도 EKF는 IMU+Baro+Mag로 동작
+// =============================================================================
 void setup() {
   Serial.begin(SERIAL_BAUD);
 
@@ -90,7 +92,7 @@ void setup() {
   if (!imu.begin()) { sendResponse("IMU FAIL\n"); ok = false; }
   if (!bmp.begin()) { sendResponse("BMP FAIL\n"); ok = false; }
   if (!mag.begin()) { sendResponse("MAG FAIL\n"); ok = false; }
-  if (!gps.begin(10)) { sendResponse("GPS WARN\n"); } // Non-fatal
+  if (!gps.begin(GPS_RATE_HZ)) { sendResponse("GPS WARN\n"); } // Non-fatal
   
   if (!ok) { beep(100, 3); while(1); }
   sendResponse("ALL SENSORS OK\n");
@@ -116,15 +118,26 @@ void setup() {
   sendResponse(">>> READY\n");
 }
 
-// ============================================================
-// loop() : Command Dispatcher
-// ============================================================
+// =============================================================================
+// loop() : USB/BLE 명령어 디스패처
+//   - 명령 모음:
+//     * REBOOT         : 안전 재부팅 (로그 강제 플러시 후 ESP.restart())
+//     * CALIBRATE      : IMU + 기압계 정적 영점 (반복, 안정될 때까지)
+//     * CALIBRATE_MAG  : 자력계 8자 회전 보정 (30초)
+//     * CALIBRATE_GPS  : GPS origin 평균 캘리브레이션 (정지 상태)
+//     * ERASE          : 플래시 칩 전체 소거
+//     * ZUPT           : EKF 정렬 (TRIAD 없이 그냥 ZUPT 수렴)
+//     * START          : 평균 TRIAD + ZUPT 수렴 → 비행 시작 (로깅 ON)
+//     * TEST_NAV       : START와 동일하지만 Pyro 점화 비활성
+//     * STOP           : 비행 종료 (로깅 OFF, 파이로 해제)
+//     * PARSE          : 플래시 → USB로 raw 바이너리 덤프
+// =============================================================================
 void loop() {
   String cmd = getIncomingRaw();
   if (cmd.length() == 0) { vTaskDelay(pdMS_TO_TICKS(50)); return; }
   cmd.toUpperCase();
 
-  // --- Common Commands ---
+  // Common Commands
   if (cmd == "REBOOT") {
     sendResponse("REBOOTING...\n");
     if (logger.isEnabled()) {
@@ -136,12 +149,12 @@ void loop() {
     ESP.restart();
   }
 
-  // --- Pre-Flight Commands ---
+  // Pre-Flight Commands
   else if (!flightActive) {
     if (cmd == "CALIBRATE") {
       digitalWrite(LED_PIN, HIGH);
       bool imuOk = false, bmpOk = false;
-      while (!(imuOk && bmpOk)) {
+      for (int attempt = 1; attempt <= CALIB_MAX_ATTEMPTS && !(imuOk && bmpOk); attempt++) {
         sendResponse("CALIBRATING IMU+BMP...\n");
         imuOk = imu.calibrate(CALIB_SAMPLES);
         bmpOk = bmp.calibrate(CALIB_SAMPLES);
@@ -157,11 +170,15 @@ void loop() {
           vTaskDelay(pdMS_TO_TICKS(1000));
         }
       }
+      if (!(imuOk && bmpOk)) {
+        sendResponse("CALIBRATION FAIL\n");
+        digitalWrite(LED_PIN, LOW);
+      }
     }
     else if (cmd == "CALIBRATE_MAG") {
       digitalWrite(LED_PIN, HIGH);
       bool magOk = false;
-      while (!magOk) {
+      for (int attempt = 1; attempt <= CALIB_MAX_ATTEMPTS && !magOk; attempt++) {
         sendResponse("CALIBRATING MAG (30S)...\n");
         if (mag.calibrate(MAG_CALIB_MS)) {
           mag.clearInterruptFlag();
@@ -174,20 +191,33 @@ void loop() {
           vTaskDelay(pdMS_TO_TICKS(2000));
         }
       }
+      if (!magOk) {
+        sendResponse("MAG CALIB FAIL\n");
+        digitalWrite(LED_PIN, LOW);
+      }
     }
     else if (cmd == "CALIBRATE_GPS") {
       sendResponse("CALIBRATING GPS (AVERAGING)...\n");
       bool gpsOk = false;
-      while (!gpsOk) {
+      for (int attempt = 1; attempt <= CALIB_MAX_ATTEMPTS && !gpsOk; attempt++) {
         if (gps.calibrate()) {
-          gpsOk = true;
-          sendResponse("GPS ORIGIN OK\n");
-          beep(200);
+          if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(NAV_MUTEX_LONG_WAIT_MS)) == pdTRUE) {
+            nav.setLaunchSite(gps.getOriginLatDeg(), gps.getOriginLonDeg());
+            xSemaphoreGive(navMutex);
+            gpsOk = true;
+            sendResponse("GPS ORIGIN OK\n");
+            beep(200);
+          } else {
+            sendResponse("NAV LOCK TIMEOUT\n");
+          }
         } else {
           sendResponse("GPS DRIFTING OR NO FIX - RETRYING...\n");
           beep(100, 3);
           vTaskDelay(pdMS_TO_TICKS(2000));
         }
+      }
+      if (!gpsOk) {
+        sendResponse("GPS CALIB FAIL\n");
       }
     }
     else if (cmd == "ERASE") {
@@ -200,56 +230,117 @@ void loop() {
       sendResponse("ALIGNING EKF...\n");
       digitalWrite(LED_PIN, HIGH);
 
-      // 수렴 판정 파라미터
-      const int   MIN_ITER     = 10;     // 최소 1.0s (조기 false-positive 방지)
-      const int   MAX_ITER     = 200;    // 최대 20.0s (안전 상한)
-      const float REL_THRESH   = 1e-3f;  // P 상대 변화 0.1% 이하면 안정
-      const int   STABLE_REQ   = 3;      // 연속 안정 횟수
-
       float P_prev = 0.0f;
       int   stable_count = 0;
       int   iter = 0;
       bool  converged = false;
 
-      for (iter = 0; iter < MAX_ITER; iter++) {
-        if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+      for (iter = 0; iter < ZUPT_MAX_ITER; iter++) {
+        if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(ZUPT_MUTEX_WAIT_MS)) == pdTRUE) {
           if (!nav.isEkfReady()) nav.ekfBegin();
           nav.ekfUpdateStaticAlignment();
           float P_now = nav.ekf().attBiasCovTrace();
           xSemaphoreGive(navMutex);
 
-          if (iter >= MIN_ITER && P_prev > 0.0f) {
+          if (iter >= ZUPT_MIN_ITER && P_prev > 0.0f) {
             float rel = fabsf(P_prev - P_now) / P_prev;
-            if (rel < REL_THRESH) {
-              if (++stable_count >= STABLE_REQ) { converged = true; break; }
+            if (rel < ZUPT_REL_THRESH) {
+              if (++stable_count >= ZUPT_STABLE_REQ) { converged = true; break; }
             } else {
               stable_count = 0;
             }
           }
           P_prev = P_now;
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(ZUPT_PERIOD_MS));
       }
 
       char buf[80];
       snprintf(buf, sizeof(buf), "ZUPT %s in %.1fs (P_trace=%.3e)\n",
                converged ? "CONVERGED" : "TIMEOUT",
-               (iter + 1) * 0.1f, P_prev);
+               (iter + 1) * (float)ZUPT_PERIOD_MS * 0.001f, P_prev);
       sendResponse(buf);
       digitalWrite(LED_PIN, LOW); beep(100);
     }
     else if (cmd == "START") {
       sendResponse("STARTING...\n");
-      if (xSemaphoreTake(navMutex, portMAX_DELAY) == pdTRUE) {
-        if (!nav.isEkfReady()) {
-          if (!nav.ekfBegin()) {
-            sendResponse("EKF INIT FAIL\n");
-            xSemaphoreGive(navMutex);
-            beep(100, 3); return;
-          }
+      digitalWrite(LED_PIN, HIGH);
+      navTestActive = false;
+
+      if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(NAV_MUTEX_LONG_WAIT_MS)) == pdTRUE) {
+        nav.ekfReset();
+        nav.resetInitAverage();
+        xSemaphoreGive(navMutex);
+      } else {
+        sendResponse("NAV LOCK TIMEOUT\n");
+        digitalWrite(LED_PIN, LOW);
+        beep(100, 3); return;
+      }
+
+      sendResponse("TRIAD AVG...\n");
+      vTaskDelay(pdMS_TO_TICKS(START_TRIAD_AVG_MS));
+
+      if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(NAV_MUTEX_LONG_WAIT_MS)) == pdTRUE) {
+        if (!nav.ekfBeginAveraged(START_TRIAD_MIN_IMU, START_TRIAD_MIN_MAG)) {
+          sendResponse("EKF INIT FAIL\n");
+          nav.ekfReset();
+          xSemaphoreGive(navMutex);
+          digitalWrite(PYRO_1_PIN, LOW);
+          digitalWrite(PYRO_2_PIN, LOW);
+          digitalWrite(LED_PIN, LOW);
+          beep(100, 3); return;
         }
         xSemaphoreGive(navMutex);
+      } else {
+        sendResponse("NAV LOCK TIMEOUT\n");
+        digitalWrite(PYRO_1_PIN, LOW);
+        digitalWrite(PYRO_2_PIN, LOW);
+        digitalWrite(LED_PIN, LOW);
+        beep(100, 3); return;
       }
+
+      sendResponse("ALIGNING EKF...\n");
+      float P_prev = 0.0f;
+      int stable_count = 0;
+      int iter = 0;
+      bool converged = false;
+
+      for (iter = 0; iter < ZUPT_MAX_ITER; iter++) {
+        if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(ZUPT_MUTEX_WAIT_MS)) == pdTRUE) {
+          nav.ekfUpdateStaticAlignment();
+          float P_now = nav.ekf().attBiasCovTrace();
+          xSemaphoreGive(navMutex);
+
+          if (iter >= ZUPT_MIN_ITER && P_prev > 0.0f) {
+            float rel = fabsf(P_prev - P_now) / P_prev;
+            if (rel < ZUPT_REL_THRESH) {
+              if (++stable_count >= ZUPT_STABLE_REQ) { converged = true; break; }
+            } else {
+              stable_count = 0;
+            }
+          }
+          P_prev = P_now;
+        }
+        vTaskDelay(pdMS_TO_TICKS(ZUPT_PERIOD_MS));
+      }
+
+      char startBuf[80];
+      snprintf(startBuf, sizeof(startBuf), "START ZUPT %s in %.1fs (P_trace=%.3e)\n",
+               converged ? "CONVERGED" : "TIMEOUT",
+               (iter + 1) * (float)ZUPT_PERIOD_MS * 0.001f, P_prev);
+      sendResponse(startBuf);
+
+      if (!converged) {
+        if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(NAV_MUTEX_LONG_WAIT_MS)) == pdTRUE) {
+          nav.ekfReset();
+          xSemaphoreGive(navMutex);
+        }
+        digitalWrite(PYRO_1_PIN, LOW);
+        digitalWrite(PYRO_2_PIN, LOW);
+        digitalWrite(LED_PIN, LOW);
+        beep(100, 3); return;
+      }
+
       sendResponse("EKF READY\n");
 
       clearSensors();
@@ -260,23 +351,119 @@ void loop() {
       digitalWrite(LED_PIN, HIGH);
       beep(300);
       sendResponse("FLIGHT ACTIVE\n");
-      xTaskNotifyGive(FlightTaskHandle); // Flight_Task 깨우기
+      xTaskNotifyGive(FlightTaskHandle);
+    }
+    else if (cmd == "TEST_NAV") {
+      sendResponse("TEST_NAV STARTING...\n");
+      digitalWrite(LED_PIN, HIGH);
+      digitalWrite(PYRO_1_PIN, LOW);
+      digitalWrite(PYRO_2_PIN, LOW);
+      navTestActive = true;
+
+      if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(NAV_MUTEX_LONG_WAIT_MS)) == pdTRUE) {
+        nav.ekfReset();
+        nav.resetInitAverage();
+        xSemaphoreGive(navMutex);
+      } else {
+        sendResponse("NAV LOCK TIMEOUT\n");
+        navTestActive = false;
+        digitalWrite(LED_PIN, LOW);
+        beep(100, 3); return;
+      }
+
+      sendResponse("TRIAD AVG...\n");
+      vTaskDelay(pdMS_TO_TICKS(START_TRIAD_AVG_MS));
+
+      if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(NAV_MUTEX_LONG_WAIT_MS)) == pdTRUE) {
+        if (!nav.ekfBeginAveraged(START_TRIAD_MIN_IMU, START_TRIAD_MIN_MAG)) {
+          sendResponse("EKF INIT FAIL\n");
+          nav.ekfReset();
+          xSemaphoreGive(navMutex);
+          navTestActive = false;
+          digitalWrite(PYRO_1_PIN, LOW);
+          digitalWrite(PYRO_2_PIN, LOW);
+          digitalWrite(LED_PIN, LOW);
+          beep(100, 3); return;
+        }
+        xSemaphoreGive(navMutex);
+      } else {
+        sendResponse("NAV LOCK TIMEOUT\n");
+        navTestActive = false;
+        digitalWrite(PYRO_1_PIN, LOW);
+        digitalWrite(PYRO_2_PIN, LOW);
+        digitalWrite(LED_PIN, LOW);
+        beep(100, 3); return;
+      }
+
+      sendResponse("ALIGNING EKF...\n");
+      float P_prev = 0.0f;
+      int stable_count = 0;
+      int iter = 0;
+      bool converged = false;
+
+      for (iter = 0; iter < ZUPT_MAX_ITER; iter++) {
+        if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(ZUPT_MUTEX_WAIT_MS)) == pdTRUE) {
+          nav.ekfUpdateStaticAlignment();
+          float P_now = nav.ekf().attBiasCovTrace();
+          xSemaphoreGive(navMutex);
+
+          if (iter >= ZUPT_MIN_ITER && P_prev > 0.0f) {
+            float rel = fabsf(P_prev - P_now) / P_prev;
+            if (rel < ZUPT_REL_THRESH) {
+              if (++stable_count >= ZUPT_STABLE_REQ) { converged = true; break; }
+            } else {
+              stable_count = 0;
+            }
+          }
+          P_prev = P_now;
+        }
+        vTaskDelay(pdMS_TO_TICKS(ZUPT_PERIOD_MS));
+      }
+
+      char testBuf[80];
+      snprintf(testBuf, sizeof(testBuf), "TEST_NAV ZUPT %s in %.1fs (P_trace=%.3e)\n",
+               converged ? "CONVERGED" : "TIMEOUT",
+               (iter + 1) * (float)ZUPT_PERIOD_MS * 0.001f, P_prev);
+      sendResponse(testBuf);
+
+      if (!converged) {
+        if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(NAV_MUTEX_LONG_WAIT_MS)) == pdTRUE) {
+          nav.ekfReset();
+          xSemaphoreGive(navMutex);
+        }
+        navTestActive = false;
+        digitalWrite(PYRO_1_PIN, LOW);
+        digitalWrite(PYRO_2_PIN, LOW);
+        digitalWrite(LED_PIN, LOW);
+        beep(100, 3); return;
+      }
+
+      clearSensors();
+      mag.clearInterruptFlag();
+      logger.setEnabled(true);
+      flightActive = true;
+      clearSensors();
+      digitalWrite(LED_PIN, HIGH);
+      beep(300);
+      sendResponse("NAV TEST ACTIVE\n");
     }
   }
 
-  // --- Flight/Active Commands ---
+  // Flight/Active Commands
   else {
     if (cmd == "STOP") {
+      digitalWrite(PYRO_1_PIN, LOW);
+      digitalWrite(PYRO_2_PIN, LOW);
+      flightActive = false;
+      navTestActive = false;
       if (logger.isEnabled()) {
         logger.setEnabled(false);
         vTaskDelay(pdMS_TO_TICKS(100));
         logger.forceFlushBuffer();
-        
-        flightActive = false;
-        digitalWrite(LED_PIN, LOW);
-        beep(200); vTaskDelay(pdMS_TO_TICKS(50)); beep(200);
-        sendResponse("STOPPED.\n");
       }
+      digitalWrite(LED_PIN, LOW);
+      beep(200); vTaskDelay(pdMS_TO_TICKS(50)); beep(200);
+      sendResponse("STOPPED.\n");
     }
     else if (cmd == "PARSE") {
       bool wasLogging = logger.isEnabled();
@@ -289,39 +476,59 @@ void loop() {
       logger.dumpRawBinary(Serial);
       sendResponse("DUMP DONE\n");
       
-      if (wasLogging) { flightActive = false; digitalWrite(LED_PIN, LOW); }
+      if (wasLogging) {
+        flightActive = false;
+        navTestActive = false;
+        digitalWrite(PYRO_1_PIN, LOW);
+        digitalWrite(PYRO_2_PIN, LOW);
+        digitalWrite(LED_PIN, LOW);
+      }
     }
   }
 
   vTaskDelay(pdMS_TO_TICKS(50));
 }
 
-// ============================================================
-// Flight Control Task (Core 0, 10Hz)
-// ============================================================
+// =============================================================================
+// Flight_Task : 비행 단계 자동 검출 + 파이로 점화 (Core 0, 10Hz)
+//   상태머신 : PRE_FLIGHT → POWERED_FLIGHT → COASTING → DESCENT → LANDED
+//   각 단계 전이 조건은 Config.h의 LAUNCH_*, BURNOUT_*, APOGEE_*, LANDED_* 참조
+//
+//   - DESCENT 진입 시 Pyro1 HIGH → PYRO1_FIRE_MS(1초) 후 자동 LOW
+//   - START 명령에서 xTaskNotifyGive로 깨워짐, STOP 시 flightActive=false로 빠져나옴
+// =============================================================================
 void Flight_Task(void *pvParameters) {
   uint32_t pyro1_start_ms = 0;
   bool pyro1_active = false;
 
   for (;;) {
-    // START 명령이 올 때까지 무한 대기 (CPU 점유 0)
+    // wait START
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    if (navTestActive) continue;
     
     flightPhase = FlightPhase::PRE_FLIGHT;
+    bool reached_high_g = false;
+    uint8_t launch_count = 0;
+    uint8_t descent_count = 0;
+    uint32_t launch_ms = 0;
+    uint32_t coast_ms = 0;
+    pyro1_active = false;
+    digitalWrite(PYRO_1_PIN, LOW);
+    digitalWrite(PYRO_2_PIN, LOW);
     TickType_t xLastWakeTime = xTaskGetTickCount();
 
     while (flightActive) {
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(100)); // 10Hz
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(FLIGHT_TASK_PERIOD_MS));
 
-      // Non-blocking pyro control: Check if 1000ms has passed since activation
-      if (pyro1_active && (millis() - pyro1_start_ms > 1000)) {
+      uint32_t now_ms = millis();
+      if (pyro1_active && (now_ms - pyro1_start_ms > PYRO1_FIRE_MS)) {
         digitalWrite(PYRO_1_PIN, LOW);
         pyro1_active = false;
       }
 
       State_nominal s;
       State_imu imu_state;
-      if (xSemaphoreTake(navMutex, 0) == pdTRUE) {
+      if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(FLIGHT_NAV_MUTEX_WAIT_MS)) == pdTRUE) {
         s = nav.getNominal();
         imu_state = nav.getStateImu();
         xSemaphoreGive(navMutex);
@@ -330,7 +537,7 @@ void Flight_Task(void *pvParameters) {
       float alt = -s.p[2];
       float vel_up = -s.v[2];
       
-      // 현재 가속도 크기 계산 (EKF가 추정한 동적 바이어스까지 제거)
+      // accel norm
       float ax = imu_state.ax - s.ba[0];
       float ay = imu_state.ay - s.ba[1];
       float az = imu_state.az - s.ba[2];
@@ -338,19 +545,30 @@ void Flight_Task(void *pvParameters) {
 
       switch (flightPhase) {
         case FlightPhase::PRE_FLIGHT:
-          if (alt > 5.0f || vel_up > 5.0f) {
+          if (alt > LAUNCH_ALT_M || vel_up > LAUNCH_VEL_UP_MPS || amag > LAUNCH_ACCEL_MPS2) {
+            launch_count++;
+          } else {
+            launch_count = 0;
+          }
+
+          if (launch_count >= LAUNCH_CONFIRM_COUNT) {
             flightPhase = FlightPhase::POWERED_FLIGHT;
+            launch_ms = now_ms;
+            reached_high_g = false;
             logger.logEvent(flightPhase, 1);
             sendResponse("LAUNCH\n");
           }
           break;
 
         case FlightPhase::POWERED_FLIGHT:
-          static bool reached_high_g = false;
-          if (amag > 20.0f) reached_high_g = true;
+          if (amag > BURNOUT_HIGH_ACCEL_MPS2) reached_high_g = true;
           
-          if (reached_high_g && amag < 10.0f) {
+          if ((reached_high_g && amag < BURNOUT_LOW_ACCEL_MPS2) ||
+              (now_ms - launch_ms > BURNOUT_TIMEOUT_MS) ||
+              (vel_up > BURNOUT_VEL_UP_MIN_MPS && amag < BURNOUT_VEL_ACCEL_MAX_MPS2)) {
             flightPhase = FlightPhase::COASTING;
+            coast_ms = now_ms;
+            descent_count = 0;
             logger.logEvent(flightPhase, 2);
             sendResponse("BO\n");
             reached_high_g = false;
@@ -358,11 +576,11 @@ void Flight_Task(void *pvParameters) {
           break;
 
         case FlightPhase::COASTING: {
-          // Apogee detection: 3 consecutive samples (300ms) with descent speed
-          static uint8_t descent_count = 0;
-          if (vel_up < -1.0f && alt > 15.0f) { // Threshold tightened: -1.0m/s, >15m alt
+          if ((now_ms - coast_ms > APOGEE_ARM_MS) &&
+              vel_up < APOGEE_VEL_UP_MPS &&
+              alt > APOGEE_MIN_ALT_M) {
             descent_count++;
-            if (descent_count >= 3) {
+            if (descent_count >= APOGEE_CONFIRM_COUNT) {
               flightPhase = FlightPhase::DESCENT;
               logger.logEvent(flightPhase, 3);
               sendResponse("APG\n");
@@ -380,25 +598,44 @@ void Flight_Task(void *pvParameters) {
         }
 
         case FlightPhase::DESCENT:
-          if (alt < 10.0f && fabsf(vel_up) < 1.0f) {
+          if (alt < LANDED_ALT_M && fabsf(vel_up) < LANDED_VEL_UP_ABS_MPS) {
             flightPhase = FlightPhase::LANDED;
             logger.logEvent(flightPhase, 4);
+            digitalWrite(PYRO_1_PIN, LOW);
+            digitalWrite(PYRO_2_PIN, LOW);
+            pyro1_active = false;
             sendResponse("LAND\n");
           }
           break;
 
         case FlightPhase::LANDED:
+          digitalWrite(PYRO_1_PIN, LOW);
+          digitalWrite(PYRO_2_PIN, LOW);
+          pyro1_active = false;
           break;
       }
     }
+
+    digitalWrite(PYRO_1_PIN, LOW);
+    digitalWrite(PYRO_2_PIN, LOW);
+    pyro1_active = false;
   }
 }
 
-// ============================================================
-// Sensor & Utility Tasks (Core 1)
-// ============================================================
+// =============================================================================
+// 센서 태스크들 — 각 센서가 인터럽트/폴링으로 트리거되면 EKF에 데이터 주입
+// =============================================================================
+
+// ----------------------------------------------------------------------------
+// IMU_Task (Core 1, prio 5)
+//   - IMU INT1 RISING 인터럽트로 깨어남 (~416Hz)
+//   - readCalibratedIMU → ekf.predictAdaptiveJerk → State_nominal 로그
+//   - flightActive 중에는 raw IMU 패킷도 별도 로깅
+// ----------------------------------------------------------------------------
 void IMU_Task(void *pvParameters) {
   Raw_imu raw;
+  State_nominal stateToLog;
+  uint32_t lastStateLogMs = 0;
   for (;;) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
@@ -410,16 +647,27 @@ void IMU_Task(void *pvParameters) {
     
     if (flightActive) logger.logImu(raw);
 
-    if (xSemaphoreTake(navMutex, portMAX_DELAY) == pdTRUE) {
+    bool logStateNow = false;
+    const uint32_t nowMs = millis();
+    if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(NAV_MUTEX_FAST_WAIT_MS)) == pdTRUE) {
       nav.updateIMU(raw);
-      if (flightActive && nav.isEkfReady()) {
-        logger.logState(nav.getNominal());
+      if (flightActive && nav.isEkfReady() &&
+          (uint32_t)(nowMs - lastStateLogMs) >= STATE_LOG_PERIOD_MS) {
+        stateToLog = nav.getNominal();
+        lastStateLogMs = nowMs;
+        logStateNow = true;
       }
       xSemaphoreGive(navMutex);
     }
+    if (logStateNow) logger.logState(stateToLog);
   }
 }
 
+// ----------------------------------------------------------------------------
+// BMP_Task (Core 0, prio 4)
+//   - 기압계 INT RISING 인터럽트로 깨어남 (~50Hz)
+//   - readAltitude → ekf.updateBaro (수직 위치 1차원 측정)
+// ----------------------------------------------------------------------------
 void BMP_Task(void *pvParameters) {
   Raw_press p;
   for (;;) {
@@ -433,13 +681,18 @@ void BMP_Task(void *pvParameters) {
     
     if (flightActive) logger.logBaro(p);
 
-    if (xSemaphoreTake(navMutex, portMAX_DELAY) == pdTRUE) {
+    if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(NAV_MUTEX_FAST_WAIT_MS)) == pdTRUE) {
       nav.updatePress(p);
       xSemaphoreGive(navMutex);
     }
   }
 }
 
+// ----------------------------------------------------------------------------
+// MAG_Task (Core 0, prio 4)
+//   - 자력계는 인터럽트 핀이 없거나 노이즈가 많아 폴링 (MAG_POLL_MS=10ms)
+//   - isDataReady() 체크 후 읽고, ekf.updateMag로 yaw 보정
+// ----------------------------------------------------------------------------
 void MAG_Task(void *pvParameters) {
   Raw_mag m;
   for (;;) {
@@ -457,23 +710,29 @@ void MAG_Task(void *pvParameters) {
     
     if (flightActive) logger.logMag(m);
     
-    if (xSemaphoreTake(navMutex, portMAX_DELAY) == pdTRUE) {
+    if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(NAV_MUTEX_FAST_WAIT_MS)) == pdTRUE) {
       nav.updateMag(m); 
       xSemaphoreGive(navMutex);
     }
   }
 }
 
+// ----------------------------------------------------------------------------
+// GPS_Task (Core 0, prio 3)
+//   - UBX 프레임을 GPS_POLL_MS(20ms) 간격으로 파싱
+//   - NAV-PVT 메시지 수신 시 getNED → ekf.updateGps (위치+속도 6차원 측정)
+//   - origin 미설정 또는 fix < 3이면 EKF 갱신은 스킵
+// ----------------------------------------------------------------------------
 void GPS_Task(void *pvParameters) {
   Raw_gps g;
   for (;;) {
     if (gps.update()) {
       g.timestamp = (uint32_t)(esp_timer_get_time() & 0xFFFFFFFF);
-      g.hasPos    = gps.getNED(g.pn, g.pe, g.pd, g.vn, g.ve, g.vd, g.hAcc, g.vAcc, g.fixType, g.numSV);
+      g.hasPos    = gps.getNED(g.pn, g.pe, g.pd, g.vn, g.ve, g.vd, g.hAcc, g.vAcc, g.sAcc, g.fixType, g.numSV);
       
       if (flightActive) logger.logGps(g);
       
-      if (xSemaphoreTake(navMutex, portMAX_DELAY) == pdTRUE) {
+      if (xSemaphoreTake(navMutex, pdMS_TO_TICKS(NAV_MUTEX_FAST_WAIT_MS)) == pdTRUE) {
         nav.updateGps(g); 
         xSemaphoreGive(navMutex);
       }
@@ -482,13 +741,16 @@ void GPS_Task(void *pvParameters) {
   }
 }
 
+// ----------------------------------------------------------------------------
+// FlushTask (Core 0, prio 2 - 가장 낮음)
+//   - 로깅 큐에서 패킷을 꺼내 페이지 버퍼에 누적 → 256B 페이지 채워지면 플래시 쓰기
+//   - 센서 태스크보다 우선순위가 낮아 데이터 수집을 절대 막지 않음
+// ----------------------------------------------------------------------------
 void FlushTask(void *pvParameters) {
   for (;;) { logger.serviceFlush(); }
 }
 
-// ============================================================
 // Utilities
-// ============================================================
 void beep(int ms, int count) {
   for (int i = 0; i < count; i++) {
     digitalWrite(BUZZER_PIN, HIGH);
@@ -500,10 +762,18 @@ void beep(int ms, int count) {
 
 void clearSensors() {
   int16_t d1, d2, d3, d4, d5, d6; float df;
-  imu.readRawIMU(d1, d2, d3, d4, d5, d6);
-  bmp.readData(df);
+  if (xSemaphoreTake(spiMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+    imu.readRawIMU(d1, d2, d3, d4, d5, d6);
+    bmp.readData(df);
+    xSemaphoreGive(spiMutex);
+  }
 }
 
+// ----------------------------------------------------------------------------
+// 인터럽트 ISR (IRAM에 상주, 가능한 짧게)
+//   - 센서 데이터레디 핀이 RISING 될 때 vTaskNotifyGiveFromISR로
+//     해당 태스크를 깨우기만 함. 실제 SPI 읽기는 태스크 컨텍스트에서.
+// ----------------------------------------------------------------------------
 void IRAM_ATTR IMUInterruptHandler() {
   BaseType_t woken = pdFALSE;
   if (TaskHandle_IMU) vTaskNotifyGiveFromISR(TaskHandle_IMU, &woken);

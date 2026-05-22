@@ -31,8 +31,10 @@
 #define EVENT_IMU_UPDATE  (1 << 0)
 #define EVENT_BMP_UPDATE  (1 << 1)
 
-#define LOG_ITEM_MAX_SIZE 32
-#define LOG_QUEUE_LENGTH  48
+#define LOG_ITEM_MAX_SIZE 32   // state_pkt = 3+4+4+4 = 15B, fits OK
+#define LOG_QUEUE_LENGTH  256  // increased from 48 — KF state packets add load
+#define BLE_DEVICE_NAME   "CANARD_2026"
+#define SERIAL_BAUD       921600
 
 struct LogItem {
   uint8_t data[LOG_ITEM_MAX_SIZE];
