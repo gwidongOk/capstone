@@ -1,18 +1,17 @@
-#ifndef PYTHON_HEADER_H
+#ifndef SENSOR_DATA_H
 #define SENSOR_DATA_H
 
 #include <stdint.h>
 
 #pragma pack(push, 1)
 
-// ============================================================
 // Packet IDs (Used by Python Parser)
-// ============================================================
 #define ID_BARO  1
 #define ID_IMU   2
 #define ID_MAG   3
 #define ID_GPS   4
 #define ID_STATE 5
+#define ID_EVENT 6
 
 struct PacketHeader {
   uint8_t SYNC_BYTE = 0xAA;
@@ -59,6 +58,7 @@ struct gps_pkt {
   float vd;
   float hAcc;
   float vAcc;
+  float sAcc;
   uint8_t fixType;
   uint8_t numSV;
 };
@@ -83,6 +83,14 @@ struct state_pkt {
   float bg_x;
   float bg_y;
   float bg_z;
+};
+
+// ID 6 : Flight event
+struct event_pkt {
+  PacketHeader header;
+  uint32_t t;
+  uint8_t phase;
+  uint8_t event_id;
 };
 
 #pragma pack(pop)
