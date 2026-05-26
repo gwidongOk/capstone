@@ -12,8 +12,8 @@ static constexpr int SPI_MISO_PIN = 12;
 static constexpr int SPI_MOSI_PIN = 11;
 static constexpr int IMU_CS_PIN   = 14;
 
-static constexpr int MAG_SDA_PIN = 5;
-static constexpr int MAG_SCL_PIN = 4;
+static constexpr int MAG_SDA_PIN = 2;
+static constexpr int MAG_SCL_PIN = 1;
 static constexpr int LED_PIN     = 48;
 
 static constexpr float G0 = 9.80665f;
