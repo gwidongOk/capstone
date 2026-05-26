@@ -4,14 +4,6 @@
 			"path": "../../.."
 		},
 		{
-			"name": "rtos_flash",
-			"path": "../../rtos_flash"
-		},
-		{
-			"name": "final",
-			"path": "../../final"
-		},
-		{
 			"name": "imu_baro_gps_mag_flash_rtos",
 			"path": ".."
 		}
