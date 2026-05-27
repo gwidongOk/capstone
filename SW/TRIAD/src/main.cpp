@@ -22,6 +22,10 @@ static constexpr float TRIAD_RAD_TO_DEG = 57.2957795131f;
 
 static constexpr uint16_t TRIAD_SAMPLES = 100;
 static constexpr uint16_t TRIAD_DT_MS   = 20;
+static constexpr uint16_t STREAM_SAMPLES = 50;
+static constexpr uint16_t STREAM_DT_MS   = 20;
+static constexpr uint16_t ACCCAL_SAMPLES = 200;
+static constexpr uint16_t ACCCAL_DT_MS   = 5;
 static constexpr uint32_t MAGCAL_MS     = 30000;
 
 static constexpr float M_REF_NED[3] = {0.5961f, -0.0838f, 0.7986f};
@@ -46,6 +50,16 @@ struct MagCal {
   bool valid;
   Vec3 bias;
   Vec3 scale;
+};
+
+struct AccCal {
+  bool valid;
+  Vec3 bias;
+};
+
+static AccCal accCal = {
+  false,
+  {0.0f, 0.0f, 0.0f}
 };
 
 static MagCal magCal = {
@@ -85,6 +99,14 @@ static bool vecNormalize(Vec3& v) {
 
 static Vec3 vecSub(const Vec3& a, const Vec3& b) {
   return {a.x-b.x, a.y-b.y, a.z-b.z};
+}
+
+static Vec3 vecAdd(const Vec3& a, const Vec3& b) {
+  return {a.x+b.x, a.y+b.y, a.z+b.z};
+}
+
+static Vec3 vecScale(const Vec3& a, float s) {
+  return {a.x*s, a.y*s, a.z*s};
 }
 
 static Vec3 vecMul(const Vec3& a, const Vec3& b) {
@@ -163,7 +185,7 @@ static bool imuBegin() {
   return true;
 }
 
-static bool readAccel(Vec3& acc) {
+static bool readAccelRawBody(Vec3& acc) {
   uint8_t b[12];
   imuReadBurst(0x22, b, 12);
 
@@ -174,6 +196,26 @@ static bool readAccel(Vec3& acc) {
   acc.x = (float)ayRaw * ACCEL_LSB_TO_MPS2;
   acc.y = (float)axRaw * ACCEL_LSB_TO_MPS2;
   acc.z = (float)(-azRaw) * ACCEL_LSB_TO_MPS2;
+  return true;
+}
+
+static bool readImuRawCounts(int16_t& gx, int16_t& gy, int16_t& gz,
+                             int16_t& ax, int16_t& ay, int16_t& az) {
+  uint8_t b[12];
+  imuReadBurst(0x22, b, 12);
+  gx = (int16_t)((b[1]  << 8) | b[0]);
+  gy = (int16_t)((b[3]  << 8) | b[2]);
+  gz = (int16_t)((b[5]  << 8) | b[4]);
+  ax = (int16_t)((b[7]  << 8) | b[6]);
+  ay = (int16_t)((b[9]  << 8) | b[8]);
+  az = (int16_t)((b[11] << 8) | b[10]);
+  return true;
+}
+
+static bool readAccel(Vec3& acc) {
+  Vec3 raw;
+  if (!readAccelRawBody(raw)) return false;
+  acc = accCal.valid ? vecSub(raw, accCal.bias) : raw;
   return true;
 }
 
@@ -220,7 +262,11 @@ static bool magBegin() {
   return true;
 }
 
-static bool readMagRaw(Vec3& mag) {
+static Vec3 magSensorToBody(const Vec3& sensor) {
+  return {sensor.x, -sensor.y, -sensor.z};
+}
+
+static bool readMagSensor(Vec3& mag) {
   uint8_t b[7];
   if (!magReadBurst(0x00, b, 7)) return false;
 
@@ -234,13 +280,20 @@ static bool readMagRaw(Vec3& mag) {
   return true;
 }
 
+static bool readMagRaw(Vec3& mag) {
+  Vec3 sensor;
+  if (!readMagSensor(sensor)) return false;
+  mag = magSensorToBody(sensor);
+  return true;
+}
+
 static bool readMag(Vec3& mag) {
-  Vec3 raw;
-  if (!readMagRaw(raw)) return false;
+  Vec3 sensor;
+  if (!readMagSensor(sensor)) return false;
   if (magCal.valid) {
-    mag = vecMul(vecSub(raw, magCal.bias), magCal.scale);
+    mag = magSensorToBody(vecMul(vecSub(sensor, magCal.bias), magCal.scale));
   } else {
-    mag = raw;
+    mag = magSensorToBody(sensor);
   }
   return true;
 }
@@ -338,38 +391,28 @@ static bool triad(const Vec3& accIn, const Vec3& magIn, Quat& q, float R[3][3], 
   return true;
 }
 
-static bool averageSensors(Vec3& accAvg, Vec3& magAvg) {
+static bool averageSensors(Vec3& accAvg, Vec3& magAvg, uint16_t samples, uint16_t dtMs) {
   Vec3 accSum = {0.0f, 0.0f, 0.0f};
   Vec3 magSum = {0.0f, 0.0f, 0.0f};
   uint16_t magCount = 0;
 
-  for (uint16_t i = 0; i < TRIAD_SAMPLES; i++) {
+  for (uint16_t i = 0; i < samples; i++) {
     Vec3 a;
     Vec3 m;
     readAccel(a);
-    accSum.x += a.x;
-    accSum.y += a.y;
-    accSum.z += a.z;
+    accSum = vecAdd(accSum, a);
 
     if (readMag(m)) {
-      magSum.x += m.x;
-      magSum.y += m.y;
-      magSum.z += m.z;
+      magSum = vecAdd(magSum, m);
       magCount++;
     }
-    delay(TRIAD_DT_MS);
+    delay(dtMs);
   }
 
-  const float invAcc = 1.0f / (float)TRIAD_SAMPLES;
-  accAvg.x = accSum.x * invAcc;
-  accAvg.y = accSum.y * invAcc;
-  accAvg.z = accSum.z * invAcc;
+  accAvg = vecScale(accSum, 1.0f / (float)samples);
 
   if (magCount == 0) return false;
-  const float invMag = 1.0f / (float)magCount;
-  magAvg.x = magSum.x * invMag;
-  magAvg.y = magSum.y * invMag;
-  magAvg.z = magSum.z * invMag;
+  magAvg = vecScale(magSum, 1.0f / (float)magCount);
   return true;
 }
 
@@ -378,7 +421,7 @@ static void printTriad() {
 
   Vec3 acc;
   Vec3 mag;
-  if (!averageSensors(acc, mag)) {
+  if (!averageSensors(acc, mag, TRIAD_SAMPLES, TRIAD_DT_MS)) {
     Serial.println("TRIAD FAIL: MAG READ");
     digitalWrite(LED_PIN, LOW);
     return;
@@ -439,18 +482,112 @@ static void printTriad() {
   digitalWrite(LED_PIN, LOW);
 }
 
+static void printStreamSample() {
+  Vec3 acc;
+  Vec3 mag;
+  if (!averageSensors(acc, mag, STREAM_SAMPLES, STREAM_DT_MS)) {
+    Serial.println("TRIAD_FAIL,MAG");
+    return;
+  }
+
+  Quat q;
+  float R[3][3];
+  float parallel = 1.0f;
+  if (!triad(acc, mag, q, R, parallel)) {
+    Serial.println("TRIAD_FAIL,GEOMETRY");
+    return;
+  }
+
+  const float accNormG = vecNorm(acc) / G0;
+  const float magNorm = vecNorm(mag);
+
+  Serial.print("TRIAD,");
+  Serial.print(millis());
+  Serial.print(",");
+  Serial.print(q.w, 7); Serial.print(",");
+  Serial.print(q.x, 7); Serial.print(",");
+  Serial.print(q.y, 7); Serial.print(",");
+  Serial.print(q.z, 7); Serial.print(",");
+  Serial.print(acc.x, 5); Serial.print(",");
+  Serial.print(acc.y, 5); Serial.print(",");
+  Serial.print(acc.z, 5); Serial.print(",");
+  Serial.print(mag.x, 5); Serial.print(",");
+  Serial.print(mag.y, 5); Serial.print(",");
+  Serial.print(mag.z, 5); Serial.print(",");
+  Serial.print(parallel, 6); Serial.print(",");
+  Serial.print(accNormG, 5); Serial.print(",");
+  Serial.println(magNorm, 5);
+}
+
 static void printRaw() {
   Vec3 acc;
+  Vec3 accRaw;
   Vec3 magRaw;
   Vec3 mag;
+  readAccelRawBody(accRaw);
   readAccel(acc);
   readMagRaw(magRaw);
   readMag(mag);
 
   Serial.println();
+  printVec("acc_raw_mps2", accRaw, 5);
   printVec("acc_mps2", acc, 5);
   printVec("mag_raw_gauss", magRaw, 5);
   printVec("mag_cal_gauss", mag, 5);
+}
+
+static void printSensorRawSample() {
+  int16_t gx, gy, gz, ax, ay, az;
+  Vec3 magSensor;
+  readImuRawCounts(gx, gy, gz, ax, ay, az);
+  readMagSensor(magSensor);
+
+  Serial.println();
+  Serial.println("RAW SENSOR SAMPLE");
+  Serial.print("imu_g_raw: ");
+  Serial.print(gx); Serial.print(", ");
+  Serial.print(gy); Serial.print(", ");
+  Serial.println(gz);
+  Serial.print("imu_a_raw: ");
+  Serial.print(ax); Serial.print(", ");
+  Serial.print(ay); Serial.print(", ");
+  Serial.println(az);
+  Serial.print("mag_sensor_gauss: ");
+  Serial.print(magSensor.x, 6); Serial.print(", ");
+  Serial.print(magSensor.y, 6); Serial.print(", ");
+  Serial.println(magSensor.z, 6);
+}
+
+static void runAccCal() {
+  Serial.println();
+  Serial.println("ACCCAL START");
+  Serial.println("Keep body X up and still");
+
+  Vec3 sum = {0.0f, 0.0f, 0.0f};
+  accCal.valid = false;
+  for (uint16_t i = 0; i < ACCCAL_SAMPLES; i++) {
+    Vec3 a;
+    readAccelRawBody(a);
+    sum = vecAdd(sum, a);
+    delay(ACCCAL_DT_MS);
+  }
+
+  const Vec3 avg = vecScale(sum, 1.0f / (float)ACCCAL_SAMPLES);
+  const float normG = vecNorm(avg) / G0;
+  if (normG < 0.90f || normG > 1.10f || avg.x < 0.70f * G0) {
+    Serial.println("ACCCAL FAIL");
+    printVec("acc_avg_mps2", avg, 5);
+    Serial.print("acc_norm_g: ");
+    Serial.println(normG, 5);
+    return;
+  }
+
+  const Vec3 target = {G0, 0.0f, 0.0f};
+  accCal.bias = vecSub(avg, target);
+  accCal.valid = true;
+
+  Serial.println("ACCCAL OK");
+  printVec("bias_mps2", accCal.bias, 6);
 }
 
 static void runMagCal() {
@@ -466,7 +603,7 @@ static void runMagCal() {
 
   while ((uint32_t)(millis() - start) < MAGCAL_MS) {
     Vec3 m;
-    if (readMagRaw(m)) {
+    if (readMagSensor(m)) {
       if (m.x < minV.x) minV.x = m.x;
       if (m.y < minV.y) minV.y = m.y;
       if (m.z < minV.z) minV.z = m.z;
@@ -516,11 +653,11 @@ static void runMagCal() {
 static void printHelp() {
   Serial.println();
   Serial.println("Commands");
-  Serial.println("TRIAD  : 2 s average + TRIAD");
-  Serial.println("RAW    : one raw sample");
-  Serial.println("MAGCAL : 30 s mag calibration");
-  Serial.println("STREAM : toggle TRIAD stream");
-  Serial.println("HELP   : command list");
+  Serial.println("CALMAG : 30 s mag calibration");
+  Serial.println("CALACC : 1 s accel calibration, body X up");
+  Serial.println("RAW1   : one IMU raw + MAG sensor sample");
+  Serial.println("STREAM : 1 Hz TRIAD CSV stream");
+  Serial.println("STOP   : stop stream");
 }
 
 static void handleCommand(const char* cmd) {
@@ -528,12 +665,18 @@ static void handleCommand(const char* cmd) {
     printTriad();
   } else if (strcmp(cmd, "RAW") == 0) {
     printRaw();
-  } else if (strcmp(cmd, "MAGCAL") == 0 || strcmp(cmd, "CALIBRATE_MAG") == 0) {
+  } else if (strcmp(cmd, "RAW1") == 0 || strcmp(cmd, "RAW_SENSOR") == 0) {
+    printSensorRawSample();
+  } else if (strcmp(cmd, "CALMAG") == 0 || strcmp(cmd, "MAGCAL") == 0 || strcmp(cmd, "CALIBRATE_MAG") == 0) {
     runMagCal();
+  } else if (strcmp(cmd, "CALACC") == 0 || strcmp(cmd, "CALIBRATE_ACC") == 0) {
+    runAccCal();
   } else if (strcmp(cmd, "STREAM") == 0) {
-    streamMode = !streamMode;
-    Serial.print("STREAM ");
-    Serial.println(streamMode ? "ON" : "OFF");
+    streamMode = true;
+    Serial.println("STREAM ON");
+  } else if (strcmp(cmd, "STOP") == 0) {
+    streamMode = false;
+    Serial.println("STREAM OFF");
   } else {
     printHelp();
   }
@@ -583,9 +726,9 @@ void setup() {
 void loop() {
   pollSerial();
 
-  if (streamMode && (uint32_t)(millis() - lastStreamMs) > 3000) {
+  if (streamMode && (uint32_t)(millis() - lastStreamMs) >= 1000) {
     lastStreamMs = millis();
-    printTriad();
+    printStreamSample();
   }
 
   delay(5);
