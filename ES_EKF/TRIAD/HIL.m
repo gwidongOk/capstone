@@ -1,6 +1,6 @@
 clear; clc; close all;
 
-port = "COM8";
+port = "COM9";
 baud = 115200;
 
 if strlength(port) == 0
@@ -30,21 +30,21 @@ hold(ax, "on");
 grid(ax, "on");
 axis(ax, "equal");
 axis(ax, [-1.2 1.2 -1.2 1.2 -1.2 1.2]);
-view(ax, 35, 25);
-set(ax, "ZDir", "reverse");
-xlabel(ax, "N");
-ylabel(ax, "E");
-zlabel(ax, "D");
+view(ax, 42, 24);
+set(ax, "ZDir", "normal");
+xlabel(ax, "E");
+ylabel(ax, "N");
+zlabel(ax, "U");
 
 quiver3(ax, 0,0,0, 1,0,0, 0, "Color", [0.2 0.2 0.2], "LineWidth", 1);
 quiver3(ax, 0,0,0, 0,1,0, 0, "Color", [0.2 0.2 0.2], "LineWidth", 1);
-quiver3(ax, 0,0,0, 0,0,1, 0, "Color", [0.2 0.2 0.2], "LineWidth", 1);
-text(ax, 1.05, 0, 0, "N");
-text(ax, 0, 1.05, 0, "E");
-text(ax, 0, 0, 1.05, "D");
-text(ax, -1.10, 0, 0, "S", "Color", [0.45 0.45 0.45]);
-text(ax, 0, -1.10, 0, "W", "Color", [0.45 0.45 0.45]);
-text(ax, 0, 0, -1.10, "U", "Color", [0.45 0.45 0.45]);
+quiver3(ax, 0,0,0, 0,0,-1, 0, "Color", [0.2 0.2 0.2], "LineWidth", 1);
+text(ax, 1.05, 0, 0, "E");
+text(ax, 0, 1.05, 0, "N");
+text(ax, 0, 0, -1.05, "D");
+text(ax, -1.10, 0, 0, "W", "Color", [0.45 0.45 0.45]);
+text(ax, 0, -1.10, 0, "S", "Color", [0.45 0.45 0.45]);
+text(ax, 0, 0, 1.10, "U", "Color", [0.45 0.45 0.45]);
 
 hBx = quiver3(ax, 0,0,0, 1,0,0, 0, "r", "LineWidth", 3);
 hBy = quiver3(ax, 0,0,0, 0,1,0, 0, "g", "LineWidth", 3);
@@ -105,14 +105,18 @@ while ishandle(fig)
     bx = R_bn(:,1);
     by = R_bn(:,2);
     bz = R_bn(:,3);
+    handed = dot(cross(bx, by), bz);
+    bx_plot = nedToDisplay(bx);
+    by_plot = nedToDisplay(by);
+    bz_plot = nedToDisplay(bz);
 
-    set(hBx, "UData", bx(1), "VData", bx(2), "WData", bx(3));
-    set(hBy, "UData", by(1), "VData", by(2), "WData", by(3));
-    set(hBz, "UData", bz(1), "VData", bz(2), "WData", bz(3));
+    set(hBx, "UData", bx_plot(1), "VData", bx_plot(2), "WData", bx_plot(3));
+    set(hBy, "UData", by_plot(1), "VData", by_plot(2), "WData", by_plot(3));
+    set(hBz, "UData", bz_plot(1), "VData", bz_plot(2), "WData", bz_plot(3));
 
-    set(tBx, "Position", 1.08*bx.');
-    set(tBy, "Position", 1.08*by.');
-    set(tBz, "Position", 1.08*bz.');
+    set(tBx, "Position", 1.08*bx_plot.');
+    set(tBy, "Position", 1.08*by_plot.');
+    set(tBz, "Position", 1.08*bz_plot.');
 
     tilt_deg = acosd(max(-1, min(1, -bx(3))));
     title(ax, sprintf("t=%.1fs  tilt=%.2f deg  acc=%.3fg  mag=%.3fG  parallel=%.3f", ...
@@ -120,15 +124,16 @@ while ishandle(fig)
     infoText = sprintf(['Body axes in NED [N E D]\n' ...
         'X: [%+.3f %+.3f %+.3f]  %s\n' ...
         'Y: [%+.3f %+.3f %+.3f]  %s\n' ...
-        'Z: [%+.3f %+.3f %+.3f]  %s'], ...
+        'Z: [%+.3f %+.3f %+.3f]  %s\n' ...
+        'XxY dot Z: %+.3f'], ...
         bx(1), bx(2), bx(3), char(axisName(bx)), ...
         by(1), by(2), by(3), char(axisName(by)), ...
-        bz(1), bz(2), bz(3), char(axisName(bz)));
+        bz(1), bz(2), bz(3), char(axisName(bz)), handed);
     set(hInfo, "String", infoText);
-    fprintf("X=%s [%+.3f %+.3f %+.3f]  Y=%s [%+.3f %+.3f %+.3f]  Z=%s [%+.3f %+.3f %+.3f]\n", ...
+    fprintf("X=%s [%+.3f %+.3f %+.3f]  Y=%s [%+.3f %+.3f %+.3f]  Z=%s [%+.3f %+.3f %+.3f]  XxYdotZ=%+.3f\n", ...
         char(axisName(bx)), bx(1), bx(2), bx(3), ...
         char(axisName(by)), by(1), by(2), by(3), ...
-        char(axisName(bz)), bz(1), bz(2), bz(3));
+        char(axisName(bz)), bz(1), bz(2), bz(3), handed);
 
     drawnow limitrate;
 end
@@ -139,6 +144,11 @@ w = q(1); x = q(2); y = q(3); z = q(4);
 R = [1-2*(y*y+z*z),   2*(x*y-w*z),   2*(x*z+w*y);
        2*(x*y+w*z), 1-2*(x*x+z*z),   2*(y*z-w*x);
        2*(x*z-w*y),   2*(y*z+w*x), 1-2*(x*x+y*y)];
+end
+
+function p = nedToDisplay(v)
+v = v(:);
+p = [v(2); v(1); -v(3)];
 end
 
 function stopStream(sp)

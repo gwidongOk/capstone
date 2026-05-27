@@ -263,7 +263,7 @@ static bool magBegin() {
 }
 
 static Vec3 magSensorToBody(const Vec3& sensor) {
-  return {sensor.x, -sensor.y, -sensor.z};
+  return {sensor.x, -sensor.y, sensor.z};
 }
 
 static bool readMagSensor(Vec3& mag) {

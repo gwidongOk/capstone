@@ -269,10 +269,10 @@ bool MMC5983MA::readCalibratedMag(float &mx, float &my, float &mz) {
     // 2. Align to Rocket Body-Axis (align_axis logic)
     // Body X = Sensor X (Nosecone)
     // Body Y = -Sensor Y (Sensor Y was Left, make it Right)
-    // Body Z = -Sensor Z (Sensor Z was Up, make it Down for RHR)
+    // Body Z = Sensor Z (Sensor Z was Up, make it Down for RHR)
     mx =  sx;
     my = -sy;
-    mz = -sz;
+    mz =  sz;
     return true;
 }
 
