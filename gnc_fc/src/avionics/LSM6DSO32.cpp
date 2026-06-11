@@ -6,13 +6,20 @@ LSM6DSO32::LSM6DSO32(uint8_t csPin, SPIClass* spi) {
     _spiSettings = SPISettings(5000000, MSBFIRST, SPI_MODE3);
 }
 
+// ----------------------------------------------------------------------------
+// begin() : LSM6DSO32 초기 설정
+//   - WHO_AM_I 확인 (0x6C) → soft reset → BDU + AutoIncrement 활성
+//   - CTRL1_XL = 0x64 : 가속 416Hz, ±32g (로켓용 풀스케일)
+//   - CTRL2_G  = 0x6C : 자이로 416Hz, ±2000dps
+//   - LPF1 활성 (CTRL1_XL[1]=1), CTRL8_XL bandwidth 100Hz로 고주파 노이즈 차단
+// ----------------------------------------------------------------------------
 bool LSM6DSO32::begin() {
     pinMode(_csPin, OUTPUT);
     digitalWrite(_csPin, HIGH);
 
     uint8_t whoAmI = readRegister(REG_WHO_AM_I);
     if (whoAmI != 0x6C) {
-        Serial.printf("LSM6DSO32 에러! WHO_AM_I = 0x%02X\n", whoAmI);
+        Serial.printf("LSM6DSO32 ERROR: WHO_AM_I = 0x%02X\n", whoAmI);
         return false;
     }
 
@@ -21,11 +28,11 @@ bool LSM6DSO32::begin() {
     writeRegister(REG_CTRL3_C, 0x44);
     writeRegister(REG_CTRL4_C, 0x04);
 
-    // 416Hz ODR, ±32g, ±2000dps
+    // IMU ODR and full-scale
     writeRegister(REG_CTRL1_XL, 0x64);
     writeRegister(REG_CTRL2_G,  0x6C);
 
-    // Accel LPF2 on, HPCF_XL = 001 → cutoff = ODR/10 = 41.6 Hz
+    // IMU ODR and full-scale
     uint8_t ctrl1 = readRegister(REG_CTRL1_XL);
     writeRegister(REG_CTRL1_XL, ctrl1 | 0x02);
     uint8_t ctrl8 = readRegister(REG_CTRL8_XL);
@@ -33,7 +40,6 @@ bool LSM6DSO32::begin() {
     ctrl8 |= (0x01 << 5);
     writeRegister(REG_CTRL8_XL, ctrl8);
 
-    // Gyro LPF1 on, FTYPE = 000 → cutoff = 136.6 Hz
     uint8_t ctrl4 = readRegister(REG_CTRL4_C);
     writeRegister(REG_CTRL4_C, ctrl4 | 0x02);
     uint8_t ctrl6 = readRegister(REG_CTRL6_C);
@@ -43,6 +49,13 @@ bool LSM6DSO32::begin() {
     return true;
 }
 
+// ----------------------------------------------------------------------------
+// calibrate() : 정적 영점 보정
+//   - nSamples 만큼 평균을 내서 자이로/가속의 int16 바이어스 저장
+//   - 가속의 Z축에 대해서는 1g(=1025 LSB at ±32g/0.976mg)를 빼고 저장
+//     (보드를 Z-up 정자세로 둔 채 보정한다는 가정)
+//   - 가속/자이로 분산이 임계 이상이면 false (보드가 흔들렸다는 뜻)
+// ----------------------------------------------------------------------------
 bool LSM6DSO32::calibrate(uint16_t nSamples) {
     int32_t sum_gx = 0, sum_gy = 0, sum_gz = 0;
     int32_t sum_ax = 0, sum_ay = 0, sum_az = 0;
@@ -66,22 +79,17 @@ bool LSM6DSO32::calibrate(uint16_t nSamples) {
     _bias_gy = (int16_t)(sum_gy / (int32_t)nSamples);
     _bias_gz = (int16_t)(sum_gz / (int32_t)nSamples);
 
-    // 캘리브레이션 자세: 로켓 수직 거치(노즈콘 Up), 발사대 90°
-    //   Body X = Nosecone = Up   → Sensor Y가 하늘 방향, +1g 측정
-    //   Body Y = Right   = 수평  → Sensor X ≈ 0g
-    //   Body Z = Down    = 수평  → Sensor Z ≈ 0g
-    // ±32g 설정에서 1g = 1025 LSB (0.976mg/LSB)
     const int16_t G_LSB = 1025;
 
     _bias_ax = (int16_t)(sum_ax / (int32_t)nSamples);                     // X: 0g
-    _bias_ay = (int16_t)((sum_ay / (int32_t)nSamples) - G_LSB);           // Y: -1g 차감
+    _bias_ay = (int16_t)((sum_ay / (int32_t)nSamples) - G_LSB);
     _bias_az = (int16_t)(sum_az / (int32_t)nSamples);                     // Z: 0g
 
     double var_gx = (sq_sum_gx / nSamples) - ((double)_bias_gx * _bias_gx);
     double var_ax = (sq_sum_ax / nSamples) - ((double)_bias_ax * _bias_ax);
     
     if (var_gx > 400.0 || var_ax > 2500.0) {
-        Serial.printf("IMU 교정 실패: 노이즈 과다 (G_Var:%.1f, A_Var:%.1f)\n", var_gx, var_ax);
+        Serial.printf("IMU CAL FAIL: noise high (G_Var:%.1f, A_Var:%.1f)\n", var_gx, var_ax);
         return false;
     }
 
@@ -110,28 +118,26 @@ void LSM6DSO32::readRawIMU(int16_t &gx, int16_t &gy, int16_t &gz,
     az = (int16_t)((buffer[11] << 8) | buffer[10]);
 }
 
+// ----------------------------------------------------------------------------
+// readCalibratedIMU() : 보정 + 축정렬된 IMU
+//   1) raw 읽고 int16 바이어스 빼기 (센서 축 기준)
+//   2) 센서축 → 로켓 body축 매핑
+//      body_x = sensor_y, body_y = sensor_x, body_z = -sensor_z
+//      (보드 실장 방향에 따라 결정된 매핑 — PCB 회전 변경 시 수정 필요)
+// ----------------------------------------------------------------------------
 void LSM6DSO32::readCalibratedIMU(int16_t &gx, int16_t &gy, int16_t &gz,
                                   int16_t &ax, int16_t &ay, int16_t &az) {
     int16_t rgx, rgy, rgz, rax, ray, raz;
     readRawIMU(rgx, rgy, rgz, rax, ray, raz);
 
-    // 1. Zero-g 바이어스 제거 (순수 센서 좌표계)
     rgx -= _bias_gx; rgy -= _bias_gy; rgz -= _bias_gz;
     rax -= _bias_ax; ray -= _bias_ay; raz -= _bias_az;
 
-    // 2. 로켓 기체 좌표계(Body Frame)로 정렬
-    // Body X = Sensor Y (Nosecone 방향)
-    // Body Y = Sensor X (Right 방향)
-    // Body Z = -Sensor Z (Down 방향)
     
-    // 자이로 변환
     gx =  rgy; 
     gy =  rgx; 
     gz = -rgz;
 
-    // 가속도 변환
-    // 정지 상태(Stand-up): Body X(Nosecone)가 하늘을 향하면 ray가 +1g가 되어 ax = +1g가 됨.
-    // 정지 상태(Horizontal): Body Z(Down)가 땅을 향하면 raz가 -1g(Sensor Z=Up이므로)가 되어 az = +1g가 됨.
     ax =  ray; 
     ay =  rax; 
     az = -raz;

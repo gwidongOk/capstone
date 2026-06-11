@@ -3,46 +3,41 @@
 
 #include <stdint.h>
 
-// ============================================================
-// Packet IDs (Used by MX25Logger and Python Parser)
-// ============================================================
-#define ID_BARO  1
-#define ID_IMU   2
-#define ID_MAG   3
-#define ID_GPS   4
-#define ID_STATE 5
-#define ID_EVENT 6
-#define ID_GNC   7
+// =============================================================================
+// 플래시 로그 패킷 ID (MX25Logger + Python 파서가 공유)
+//   - 패킷 헤더 0xAA(SYNC) + id + len 다음에 ID별 바디가 따라옴
+// =============================================================================
+#define ID_BARO  1   // 기압고도
+#define ID_IMU   2   // IMU raw (int16, 보정 후/축정렬 후)
+#define ID_MAG   3   // 자력계 (보정된 Gauss)
+#define ID_GPS   4   // GPS NED + 정확도 + fix 정보
+#define ID_STATE 5   // ES-EKF nominal state (16 floats)
+#define ID_EVENT 6   // 비행 phase 변화 이벤트
+#define ID_GNC   7   // GNC 출력 (guidance cmd + fin cmd + phase)
 
-// ============================================================
-// In-RAM sensor data (not packed — used in tasks, NAV, queues)
-// ============================================================
 
-// IMU — axis-aligned + int16 bias removed (by LSM6DSO32::readCalibratedIMU)
+// IMU raw (보정/축정렬 후 int16 LSB)
 struct Raw_imu {
     uint32_t timestamp;
     int16_t gx, gy, gz;
     int16_t ax, ay, az;
 };
 
-// BARO — altitude (m) above pad (from BMP388::readAltitude)
 struct Raw_press {
     uint32_t timestamp;
     float alt;
 };
 
-// MAG — fully calibrated Gauss (from MMC5983MA::readCalibratedMag)
 struct Raw_mag {
     uint32_t timestamp;
     float mx, my, mz;
 };
 
-// GPS — NED pos/vel + accuracy + fix (from NEOM9N::getNED)
 struct Raw_gps {
     uint32_t timestamp;
     float pn, pe, pd;
     float vn, ve, vd;
-    float hAcc, vAcc;
+    float hAcc, vAcc, sAcc;
     uint8_t fixType;
     uint8_t numSV;
     bool hasPos;   // true if origin set AND fix>=3
@@ -65,9 +60,7 @@ struct State_nominal {
     float bg[3];  // gyro bias
 };
 
-// ============================================================
-// On-flash packets (packed — written to MX25 flash via MX25Logger)
-// ============================================================
+// MX25L25645G: 32MB flash
 #pragma pack(push, 1)
 
 struct PacketHeader {
@@ -104,7 +97,7 @@ struct gps_pkt {
   uint32_t t;
   float pn, pe, pd;
   float vn, ve, vd;
-  float hAcc, vAcc;
+  float hAcc, vAcc, sAcc;
   uint8_t fixType;
   uint8_t numSV;
 };
@@ -133,19 +126,18 @@ struct event_pkt {
   PacketHeader header;
   uint32_t t;
   uint8_t  phase;    // Current FlightPhase
-  uint8_t  event_id; // 0:None, 1:Launch, 2:Apogee, 3:Landing
+  uint8_t  event_id; // 0:None, 1:Launch, 2:Burnout, 3:Apogee, 4:Main, 5:Landing
 };
 
-// ID 7 : GNC output (accel commands + fin deflections)
+// ID 7 : GNC output (guidance commands + fin deflections + phase)
 struct gnc_pkt {
   PacketHeader header;
   uint32_t t;
-  float nz_cmd;       // pitch accel command [g]
-  float ny_cmd;       // yaw accel command [g]
-  float fin_cmd[4];   // fin deflections [rad]
-  uint8_t phase;      // flight_phase_t
+  float nz_cmd;      // pitch accel command [g]
+  float ny_cmd;      // yaw accel command [g]
+  float fin_cmd[4];  // fin deflections [rad]
+  uint8_t phase;     // flight_phase_t value
 };
-
 
 #pragma pack(pop)
 

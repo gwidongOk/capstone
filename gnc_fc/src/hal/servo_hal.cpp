@@ -16,7 +16,7 @@ static const int servo_pins[4] = {
 
 static const uint8_t LEDC_CHANNELS[4] = {0, 1, 2, 3};
 static const uint32_t LEDC_FREQ = SERVO_PWM_FREQ_HZ;
-static const uint8_t  LEDC_RES  = 16;
+static const uint8_t  LEDC_RES  = 14;
 
 void servo_init(void)
 {

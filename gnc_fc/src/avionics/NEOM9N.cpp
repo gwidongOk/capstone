@@ -26,8 +26,15 @@ NEOM9N::NEOM9N(HardwareSerial &serial, int rxPin, int txPin)
     memset(&_pvt, 0, sizeof(_pvt));
 }
 
-// ── Public ──────────────────────────────────────────────
 
+// ----------------------------------------------------------------------------
+// begin() : NEO-M9N GPS 초기화
+//   1) 4종 baudrate를 차례로 시도 (38400, 9600, 115200, 57600)
+//   2) probe() 응답으로 정상 baud 확정
+//   3) UART1을 UBX-only 모드로 변경, NMEA 비활성, NAV-PVT만 활성
+//   4) 출력 레이트 설정, dynamic model = Airborne <4g (로켓 프로파일)
+//   5) saveCfg : 설정을 GPS 내부 BBR/Flash에 저장 (재부팅 후 유지)
+// ----------------------------------------------------------------------------
 bool NEOM9N::begin(uint16_t rateHz) {
     const uint32_t bauds[] = {38400, 9600, 115200, 57600};
     bool connected = false;
@@ -83,9 +90,15 @@ float NEOM9N::getHeadingAcc() const    { return _pvt.headAcc * 1e-5f; }
 float NEOM9N::getSpeedAcc() const      { return _pvt.sAcc * 0.001f; }
 float NEOM9N::getHorizontalAcc() const { return _pvt.hAcc * 0.001f; }
 float NEOM9N::getVerticalAcc() const   { return _pvt.vAcc * 0.001f; }
+float NEOM9N::getOriginLatDeg() const  { return _origin_lat_rad / DEG2RAD; }
+float NEOM9N::getOriginLonDeg() const  { return _origin_lon_rad / DEG2RAD; }
 
-// ── Calibration (NED origin) ────────────────────────────
 
+// ----------------------------------------------------------------------------
+// calibrate() : 정지 상태에서 평균을 내 origin(lat/lon/alt) 확정
+//   - 20샘플 평균, 중간에 5m 이상 흔들리거나 속도 0.5m/s 초과 시 실패
+//   - origin 확정 후 getNED()가 동작 시작
+// ----------------------------------------------------------------------------
 bool NEOM9N::calibrate(float maxHAcc_m) {
     if (_pvt.fixType < 3) {
         Serial.println("[GPS] calibrate: no 3D fix");
@@ -101,14 +114,12 @@ bool NEOM9N::calibrate(float maxHAcc_m) {
     uint32_t t0 = millis();
     while (collected < nSamples && millis() - t0 < 10000) {
         if (update()) {
-            // 안정성 체크 1: 현재 속도가 너무 빠르면 (드리프트가 심하면) 실패
             float speed = _pvt.gSpeed * 0.001f;
             if (speed > 0.5f) {
                 Serial.printf("[GPS] Calib fail: moving too fast (%.2f m/s)\n", speed);
                 return false;
             }
 
-            // 안정성 체크 2: 처음 지점으로부터 너무 멀어지면 실패
             double latNow = _pvt.lat * 1e-7;
             double lonNow = _pvt.lon * 1e-7;
             double dLat = (latNow - latStart) * DEG2RAD * R_EARTH;
@@ -139,14 +150,23 @@ bool NEOM9N::calibrate(float maxHAcc_m) {
     return true;
 }
 
+// ----------------------------------------------------------------------------
+// getNED() : 현재 PVT를 origin 기준 NED 좌표로 변환 (Flat-Earth 근사)
+//   - pn = (lat - lat0) * R_earth
+//   - pe = (lon - lon0) * R_earth * cos(lat0)
+//   - pd = -(alt - alt0)
+//   - 속도(velN/E/D)는 GPS가 직접 ECEF 변환한 값이라 그대로 사용
+//   - origin 미설정 또는 fix<3이면 pn=pe=pd=0, hasPos=false 반환
+// ----------------------------------------------------------------------------
 bool NEOM9N::getNED(float &pn, float &pe, float &pd,
                     float &vn, float &ve, float &vd,
-                    float &hAcc, float &vAcc,
+                    float &hAcc, float &vAcc, float &sAcc,
                     uint8_t &fixType, uint8_t &numSV) {
     fixType = _pvt.fixType;
     numSV   = _pvt.numSV;
     hAcc    = _pvt.hAcc * 1e-3f;
     vAcc    = _pvt.vAcc * 1e-3f;
+    sAcc    = _pvt.sAcc * 1e-3f;
 
     vn = _pvt.velN * 1e-3f;
     ve = _pvt.velE * 1e-3f;
@@ -167,8 +187,13 @@ bool NEOM9N::getNED(float &pn, float &pe, float &pd,
     return true;
 }
 
-// ── UBX Parser ──────────────────────────────────────────
 
+// ----------------------------------------------------------------------------
+// feed() : UBX 프로토콜 바이트 단위 상태머신 파서
+//   SYNC1(0xB5) → SYNC2(0x62) → CLASS → ID → LEN1/LEN2 → PAYLOAD → CK_A → CK_B
+//   - Fletcher-8 체크섬 자체 누적
+//   - 길이가 _buf 크기를 넘으면 폐기 후 SYNC1로 복귀
+// ----------------------------------------------------------------------------
 void NEOM9N::feed(uint8_t b) {
     switch (_ps) {
     case SYNC1:   if (b == UBX_SYNC1) _ps = SYNC2; return;
@@ -224,7 +249,6 @@ void NEOM9N::parseNavPVT() {
     _pvt.fresh   = true;
 }
 
-// ── UBX Send / ACK ──────────────────────────────────────
 
 void NEOM9N::sendUBX(uint8_t cls, uint8_t id, const uint8_t *pl, uint16_t len) {
     uint8_t a = 0, b = 0;
@@ -283,7 +307,6 @@ bool NEOM9N::probe() {
     return false;
 }
 
-// ── Configuration ───────────────────────────────────────
 
 bool NEOM9N::setUART1_UBXOnly() {
     uint8_t msg[20] = {};

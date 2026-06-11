@@ -7,6 +7,13 @@ BMP388::BMP388(uint8_t csPin, SPIClass* spi) {
     _spiSettings = SPISettings(5000000, MSBFIRST, SPI_MODE0);
 }
 
+// ----------------------------------------------------------------------------
+// begin() : BMP388 초기 설정
+//   - soft reset → CHIP_ID 확인 (0x50) → NVM 보정계수 읽기
+//   - Oversampling x8(압력)/x1(온도), ODR 50Hz, IIR off
+//   - INT_CTRL 0x46 : push-pull active-high data-ready 인터럽트
+//   - PWR_CTRL 0x33 : normal mode + press/temp 모두 활성
+// ----------------------------------------------------------------------------
 bool BMP388::begin() {
     pinMode(_csPin, OUTPUT);
     digitalWrite(_csPin, HIGH);
@@ -19,9 +26,9 @@ bool BMP388::begin() {
 
     readCalibrationData();
 
-    setOversampling(0x03, 0x00);  // press ×8, temp ×1
+    setOversampling(0x03, 0x00);
     setIIRFilter(0x00);
-    setODR(0x02);                 // 25 Hz
+    setODR(0x02);                 // 50 Hz
 
     writeRegister(REG_INT_CTRL, 0x46);
     delay(10);
@@ -41,6 +48,10 @@ void BMP388::setIIRFilter(uint8_t coef) {
     writeRegister(REG_CONFIG, (coef & 0x07) << 1);
 }
 
+// ----------------------------------------------------------------------------
+// readData() : raw 24-bit 압력/온도 → BMP388 보정식으로 Pa 단위 절대압력
+//   - datasheet 16.1절 Compensation formula (double precision로 계산)
+// ----------------------------------------------------------------------------
 bool BMP388::readData(float &pressure) {
     readRegister(REG_INT_STATUS);
 
@@ -73,6 +84,11 @@ bool BMP388::readData(float &pressure) {
     return true;
 }
 
+// ----------------------------------------------------------------------------
+// calibrate() : 패드 압력(_pad_p) 평균 저장
+//   - 첫 20샘플은 워밍업으로 버림 → nSamples 평균
+//   - 압력 분산이 너무 크면(>100 Pa²) 보드 흔들림으로 판정해 실패 반환
+// ----------------------------------------------------------------------------
 bool BMP388::calibrate(uint16_t nSamples) {
     // Discard warm-up samples
     for (uint16_t i = 0; i < 20; i++) {
@@ -93,18 +109,21 @@ bool BMP388::calibrate(uint16_t nSamples) {
     
     _pad_p = (float)(sum / (double)nSamples);
     
-    // 분산 확인 (Pa 단위)
     double var = (sq_sum / nSamples) - ((double)_pad_p * _pad_p);
     
-    // 기압 안정성 확인: 표준편차가 10Pa(약 0.8m) 이상이면 불안정한 것으로 간주
     if (var > 100.0) { // 10^2
-        Serial.printf("Baro 교정 실패: 압력 불안정 (Var: %.1f Pa)\n", var);
+        Serial.printf("BARO CAL FAIL: pressure unstable (Var: %.1f Pa)\n", var);
         return false;
     }
 
     return true;
 }
 
+// ----------------------------------------------------------------------------
+// readAltitude() : 패드 대비 상대고도 [m]
+//   - 국제표준대기 공식 : alt = 44330 * (1 - (P/P_pad)^(1/5.255))
+//   - 1/5.255 ≈ 0.1903
+// ----------------------------------------------------------------------------
 bool BMP388::readAltitude(float &alt) {
     float p;
     if (!readData(p)) return false;

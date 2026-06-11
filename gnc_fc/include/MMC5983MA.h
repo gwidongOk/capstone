@@ -19,7 +19,7 @@ private:
     // I2C 7-bit address (SA0 tied low on the module; datasheet default)
     static const uint8_t I2C_ADDR_DEFAULT = 0x30;
 
-    // --- Register addresses ---
+    // Register addresses
     static const uint8_t REG_X_OUT_0    = 0x00;
     static const uint8_t REG_X_OUT_1    = 0x01;
     static const uint8_t REG_Y_OUT_0    = 0x02;
@@ -35,7 +35,7 @@ private:
     static const uint8_t REG_CTRL3      = 0x0C;
     static const uint8_t REG_PROD_ID    = 0x2F;
 
-    // --- Control 0 bits ---
+    // Control 0 bits
     static const uint8_t TM_M              = 0x01;
     static const uint8_t TM_T              = 0x02;
     static const uint8_t INT_MEAS_DONE_EN  = 0x04;
@@ -43,14 +43,14 @@ private:
     static const uint8_t RESET_OPERATION   = 0x10;
     static const uint8_t AUTO_SR_EN        = 0x20;
 
-    // --- Control 1 bits ---
+    // Control 1 bits
     static const uint8_t BW0       = 0x01;
     static const uint8_t BW1       = 0x02;
     static const uint8_t X_INHIBIT = 0x04;
     static const uint8_t YZ_INHIBIT= 0x18;  // bits 3-4 (Y and Z inhibit)
-    static const uint8_t SW_RST    = 0x80;  // bit 7 — datasheet value
+    static const uint8_t SW_RST    = 0x80;
 
-    // --- Control 2 bits ---
+    // Control 2 bits
     static const uint8_t CM_FREQ_0 = 0x01;
     static const uint8_t CM_FREQ_1 = 0x02;
     static const uint8_t CM_FREQ_2 = 0x04;
@@ -60,7 +60,7 @@ private:
     static const uint8_t PRD_SET_2 = 0x40;
     static const uint8_t EN_PRD_SET= 0x80;
 
-    // --- Status bits ---
+    // Status bits
     static const uint8_t MEAS_M_DONE = 0x01;
     static const uint8_t MEAS_T_DONE = 0x02;
 
@@ -72,7 +72,6 @@ private:
     uint8_t _shadowCtrl2 = 0x00;
     uint8_t _shadowCtrl3 = 0x00;
 
-    // Calibration state — Gauss domain
     float _bias[3]  = {0.0f, 0.0f, 0.0f};
     float _scale[3] = {1.0f, 1.0f, 1.0f};
 
@@ -86,13 +85,8 @@ private:
     void shadowClear(uint8_t reg, uint8_t mask, bool write = true);
 
 public:
-    // ================================================================
     // Default config (ES-EKF attitude update, solid rocket)
-    //   Edit these constants to retune — begin() applies them.
-    //   BW=100 Hz  → 0.4 mG RMS (lowest noise)
-    //   CMM=50 Hz  → max ODR allowed at BW=100 (datasheet Max ODR tbl)
-    //   PRD_SET=75 → periodic SET every ~1.5 s (bias stability)
-    // ================================================================
+    // IMU ODR and full-scale
     static const uint16_t DEFAULT_BW_HZ       = 100;
     static const uint16_t DEFAULT_CMM_HZ      = 50;
     static const uint16_t DEFAULT_PRD_SET_CNT = 75;
@@ -106,7 +100,7 @@ public:
     // Use after any temporary change (e.g. calibration boosting CMM rate).
     void applyDefaults();
 
-    // ===== Settings =====
+    // Settings
     bool setFilterBandwidth(uint16_t bw);       // 100, 200, 400, 800
     bool setContinuousFrequency(uint16_t freq);  // 0, 1, 10, 20, 50, 100, 200, 1000
     void enableAutoSetReset(bool enable);
@@ -121,7 +115,7 @@ public:
     void applyConfig(const MMC5983MA_Config& cfg);
     MMC5983MA_Config getConfig();
 
-    // ===== Raw data =====
+    // Raw data
     // 18-bit raw magnetic field (0 ~ 262143, offset binary: 131072 = 0 Gauss)
     void readRawMag(uint32_t &mx, uint32_t &my, uint32_t &mz);
 
@@ -130,7 +124,7 @@ public:
     // Caller still applies hard-iron / soft-iron calibration.
     void readMag(float &mx, float &my, float &mz);
 
-    // ===== Calibration =====
+    // Calibration
     // Blocking ~durationMs. User rotates board in figure-8 covering all orientations.
     // Stores hard-iron bias and soft-iron scale internally (in Gauss).
     // Returns true if coverage was sufficient.
@@ -140,14 +134,14 @@ public:
     // Body-frame axis: pass-through (edit if MAG is mounted rotated).
     bool readCalibratedMag(float &mx, float &my, float &mz);
 
-    // ===== Interrupt =====
+    // Interrupt
     void enableDataReadyInterrupt(bool enable);
     void clearInterruptFlag();  // Write 1 to Meas_M_Done to release INT pin
 
-    // ===== Polling =====
+    // Polling
     bool isDataReady();  // Poll STATUS register for Meas_M_Done
 
-    // ===== Debug =====
+    // Debug
     uint8_t debugRead(uint8_t reg) { return readRegister(reg); }
     void    triggerSingleMeasurement();  // Set TM_M; measurement takes ~8 ms
 
@@ -155,7 +149,7 @@ public:
     bool    readMagSingleShot(uint32_t& mx, uint32_t& my, uint32_t& mz,
                               uint32_t timeoutMs = 20);
 
-    // ===== Utility =====
+    // Utility
     bool isConnected();
     void softReset();
     void performSetOperation();
